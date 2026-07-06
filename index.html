@@ -25,9 +25,12 @@ body{font-family:'Pretendard',-apple-system,sans-serif;color:var(--ink);font-siz
 
 /* ---------- 상단 ---------- */
 header{position:relative;overflow:hidden;
-  background:linear-gradient(150deg, #17402C 0%, var(--green-950) 52%, #071710 100%);
+  background:linear-gradient(120deg, #071710, #17402C, #1E5238, #124029, #071710);
+  background-size:300% 300%;animation:hdrFlow 5s ease infinite;
   color:#fff;padding:20px 24px 16px;border-bottom:2px solid var(--accent-deep);
   box-shadow:0 2px 14px rgba(14,36,26,.25)}
+@keyframes hdrFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@media(prefers-reduced-motion:reduce){header{animation:none;background-position:0% 50%}}
 header::before{content:'';position:absolute;inset:0;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='240' viewBox='0 0 700 240'%3E%3Cg fill='none' stroke-width='1.5'%3E%3Cpath d='M0 150 Q170 95 340 145 T700 128' stroke='%23ffffff' stroke-opacity='.07'/%3E%3Cpath d='M0 180 Q180 128 350 175 T700 160' stroke='%23E8B14B' stroke-opacity='.13'/%3E%3Cpath d='M0 210 Q190 165 360 205 T700 195' stroke='%23ffffff' stroke-opacity='.05'/%3E%3C/g%3E%3Cpath d='M600 78 V30 l30 9 -30 9' fill='%23E8B14B' fill-opacity='.30'/%3E%3Ccircle cx='600' cy='82' r='3.5' fill='%23E8B14B' fill-opacity='.45'/%3E%3C/svg%3E");
   background-repeat:repeat-x;background-position:bottom right;background-size:700px 240px}
@@ -212,7 +215,7 @@ td.num,th.num{text-align:right}
 
 <header>
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 1.5</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 1.8</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -525,6 +528,7 @@ const won = n => Number(n||0).toLocaleString('ko-KR');
 const esc = s => String(s??'').replace(/</g,'&lt;');
 const today = () => new Date().toISOString().slice(0,10);
 const shortDate = v => { const s=String(v||''); const m=s.match(/^\d{2}(\d{2})-(\d{2})-(\d{2})/); return m?m[1]+'-'+m[2]+'-'+m[3]:s; };
+const countPlayers = v => String(v||'').split(',').map(x=>x.trim()).filter(Boolean).length;
 
 function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderBoard(); }
 
@@ -532,7 +536,7 @@ function renderDash(){
   document.getElementById('stMembers').innerHTML = DATA.members.length + '<small> 명</small>';
   const upcoming = DATA.events.filter(e => e['날짜'] >= today()).sort((a,b)=>a['날짜']<b['날짜']?-1:1);
   document.getElementById('stNext').textContent = upcoming.length
-    ? upcoming[0]['날짜'] + ' ' + upcoming[0]['골프장'] : '예정 없음';
+    ? shortDate(upcoming[0]['날짜']) + ' ' + upcoming[0]['골프장'] : '예정 없음';
   const bal = DATA.fees.reduce((s,f)=> s + (f['구분']==='수입'?1:-1)*Number(f['금액']||0), 0);
   document.getElementById('stBalance').innerHTML = won(bal) + '<small> 원</small>';
   const yr = new Date().getFullYear().toString();
@@ -542,7 +546,7 @@ function renderDash(){
   document.getElementById('dashRank').innerHTML = rankTable(5);
   document.getElementById('dashEvents').innerHTML = upcoming.length
     ? '<table>' + upcoming.slice(0,5).map(e =>
-        '<tr><td style="width:110px;font-weight:700">'+e['날짜']+'</td><td>'+esc(e['골프장'])+'</td><td style="color:var(--ink-soft)">'+esc(e['티오프']||'')+'</td></tr>'
+        '<tr><td style="width:90px;font-weight:700;white-space:nowrap">'+shortDate(e['날짜'])+'</td><td style="white-space:nowrap">'+esc(e['골프장'])+'</td><td style="color:var(--ink-soft);white-space:nowrap">'+esc(e['티오프']||'')+'</td></tr>'
       ).join('') + '</table>'
     : '<div class="empty">예정된 모임이 없습니다. 모임 일정 탭에서 등록하세요.</div>';
 }
@@ -588,12 +592,11 @@ function renderEvents(){
   const el = document.getElementById('eventList');
   if(!DATA.events.length){ el.innerHTML = '<div class="empty">등록된 모임이 없습니다.</div>'; return; }
   const sorted = [...DATA.events].sort((a,b)=>a['날짜']<b['날짜']?1:-1);
-  el.innerHTML = '<table><tr><th>날짜</th><th>티오프</th><th>골프장</th><th>참가자</th><th>메모</th><th style="width:120px"></th></tr>' +
+  el.innerHTML = '<table><tr><th style="white-space:nowrap">날짜</th><th style="white-space:nowrap">티오프</th><th style="white-space:nowrap">골프장</th><th class="num" style="white-space:nowrap">참가자</th><th style="white-space:nowrap">메모</th><th style="width:120px"></th></tr>' +
     sorted.map(e =>
-      '<tr><td style="font-weight:700">'+esc(e['날짜'])+'</td><td>'+esc(e['티오프'])+'</td><td>'+esc(e['골프장'])+'</td>'+
-      '<td style="font-size:13px">'+esc(e['참가자'])+'</td><td>'+esc(e['메모'])+'</td>'+
-      '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openEvent('+e.ID+')">수정</button> '+
-      '<button class="btn btn-sm btn-danger" onclick="delEvent('+e.ID+')">삭제</button></td></tr>'
+      '<tr><td style="font-weight:700;white-space:nowrap">'+shortDate(e['날짜'])+'</td><td style="white-space:nowrap">'+esc(e['티오프'])+'</td><td style="white-space:nowrap">'+esc(e['골프장'])+'</td>'+
+      '<td class="num" style="white-space:nowrap">'+countPlayers(e['참가자'])+'명</td><td style="white-space:nowrap">'+esc(e['메모'])+'</td>'+
+      '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm btn-ghost" onclick="openEvent('+e.ID+')">수정</button><button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delEvent('+e.ID+')">삭제</button></td></tr>'
     ).join('') + '</table>';
 }
 
