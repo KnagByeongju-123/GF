@@ -180,6 +180,7 @@ td.num,th.num{text-align:right}
   .page-head h2{font-size:16px}
   .page-head{margin-bottom:12px}
   .btn{padding:8px 13px;font-size:13px}
+  .btn-sm{padding:4px 8px;font-size:11.5px}
   .stats{grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
   .stat{padding:12px 13px}
   .stat .value{font-size:21px}
@@ -211,7 +212,7 @@ td.num,th.num{text-align:right}
 
 <header>
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 1.3</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 1.5</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -523,6 +524,7 @@ document.querySelectorAll('.modal-bg').forEach(m =>
 const won = n => Number(n||0).toLocaleString('ko-KR');
 const esc = s => String(s??'').replace(/</g,'&lt;');
 const today = () => new Date().toISOString().slice(0,10);
+const shortDate = v => { const s=String(v||''); const m=s.match(/^\d{2}(\d{2})-(\d{2})-(\d{2})/); return m?m[1]+'-'+m[2]+'-'+m[3]:s; };
 
 function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderBoard(); }
 
@@ -574,12 +576,11 @@ function renderMembers(){
   const el = document.getElementById('memberList');
   const admin = isAdmin();
   if(!DATA.members.length){ el.innerHTML = '<div class="empty">등록된 회원이 없습니다.</div>'; return; }
-  el.innerHTML = '<table><tr><th>이름</th><th>연락처</th><th class="num">핸디캡</th><th>가입일</th><th>비고</th>'+(admin?'<th style="width:120px"></th>':'')+'</tr>' +
+  el.innerHTML = '<table><tr><th>이름</th><th>연락처</th><th class="num" style="white-space:nowrap">핸디캡</th><th style="white-space:nowrap">가입일</th><th style="white-space:nowrap">비고</th>'+(admin?'<th style="width:120px"></th>':'')+'</tr>' +
     DATA.members.map(m =>
-      '<tr><td style="font-weight:700">'+esc(m['이름'])+roleBadge(m['직책'])+'</td><td>'+esc(m['연락처'])+'</td>'+
-      '<td class="num">'+esc(m['핸디캡'])+'</td><td>'+esc(m['가입일'])+'</td><td>'+esc(m['비고'])+'</td>'+
-      (admin ? '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button> '+
-      '<button class="btn btn-sm btn-danger" onclick="delMember('+m.ID+')">삭제</button></td>' : '')+'</tr>'
+      '<tr><td style="font-weight:700;white-space:nowrap">'+esc(m['이름'])+roleBadge(m['직책'])+'</td><td style="white-space:nowrap">'+esc(m['연락처'])+'</td>'+
+      '<td class="num">'+esc(m['핸디캡'])+'</td><td style="white-space:nowrap">'+shortDate(m['가입일'])+'</td><td>'+esc(m['비고'])+'</td>'+
+      (admin ? '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button><button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delMember('+m.ID+')">삭제</button></td>' : '')+'</tr>'
     ).join('') + '</table>';
 }
 
