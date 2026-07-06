@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>골프클럽 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --green-950:#0E241A; --green-800:#1B4230; --green-600:#2E6247;
+  --paper:#EFEBE1; --card:#FDFCF8; --line:#D8CFBA; --line-soft:#E9E3D3;
+  --ink:#23281F; --ink-soft:#6B715F;
+  --flag:#B23A26; --gold:#C09A3E; --gold-deep:#9C7A2A;
+  --radius:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard',-apple-system,sans-serif;color:var(--ink);font-size:15px;
+  background:
+    radial-gradient(1100px 500px at 15% -5%, rgba(192,154,62,.10), transparent 60%),
+    radial-gradient(900px 600px at 100% 0%, rgba(27,66,48,.10), transparent 55%),
+    linear-gradient(180deg, #F2EEE4 0%, var(--paper) 45%, #E7E1D2 100%);
+  background-attachment:fixed;min-height:100vh}
+
+/* ---------- 상단 ---------- */
+header{background:linear-gradient(160deg, #123022 0%, var(--green-950) 55%, #0A1B13 100%);
+  color:#fff;padding:18px 24px 0;border-bottom:3px solid var(--gold);
+  box-shadow:0 2px 14px rgba(14,36,26,.25)}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.brand h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
+.brand h1 .flag{color:#E8B14B}
+.brand .sub{font-size:12.5px;color:#9DB8A6}
+nav{display:flex;gap:2px;overflow-x:auto}
+nav button{background:none;border:none;color:#B9CDBF;font:inherit;font-size:14.5px;font-weight:600;
+  padding:11px 16px;cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap}
+nav button.on{background:#F2EEE4;color:var(--green-950)}
+nav button:hover:not(.on){color:#fff}
+
+main{max-width:1080px;margin:0 auto;padding:24px 20px 60px}
+
+/* ---------- 공통 ---------- */
+.page-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.page-head h2{font-size:18px;font-weight:800}
+.btn{font:inherit;font-weight:700;font-size:14px;border:none;border-radius:8px;padding:9px 16px;cursor:pointer}
+.btn-primary{background:var(--green-800);color:#fff}
+.btn-primary:hover{background:var(--green-600)}
+.btn-ghost{background:none;color:var(--ink-soft);border:1px solid var(--line)}
+.btn-sm{font-size:12.5px;padding:5px 10px;border-radius:6px}
+.btn-danger{background:none;color:var(--flag);border:1px solid #E8C4BC}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  box-shadow:0 1px 3px rgba(35,40,31,.06), 0 8px 24px rgba(35,40,31,.05)}
+
+/* 스코어카드풍 테이블 */
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{background:#F1ECDE;color:var(--gold-deep);font-size:12.5px;font-weight:700;text-align:left;
+  letter-spacing:.02em;padding:10px 14px;border-bottom:2px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--line-soft);font-size:14.5px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FCFAF3}
+td.num,th.num{text-align:right}
+.empty{padding:36px;text-align:center;color:var(--ink-soft);font-size:14px}
+
+/* 대시보드 */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--gold);
+  border-radius:var(--radius);padding:16px 18px;
+  box-shadow:0 1px 3px rgba(35,40,31,.06), 0 8px 24px rgba(35,40,31,.05)}
+.stat .label{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-bottom:6px}
+.stat .value{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.stat .value small{font-size:14px;font-weight:600;color:var(--ink-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.card h3{font-size:14px;font-weight:800;padding:13px 16px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#FAF7EE,#F3EEE0);color:var(--green-950)}
+
+/* 랭킹 */
+.rank-1{color:var(--gold);font-weight:800}
+.rank-medal{font-size:16px}
+.badge{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px}
+.badge-in{background:#E4EFE7;color:var(--green-800)}
+.badge-out{background:#F7E5E1;color:var(--flag)}
+
+/* 모달 */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(20,48,31,.45);z-index:50;
+  align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:440px;padding:24px}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:18px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;font:inherit;font-size:14.5px;padding:9px 11px;
+  border:1px solid var(--line);border-radius:8px;background:#FDFCF8}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--green-600);border-color:transparent}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* 스코어 입력 리스트 */
+.score-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.score-row span{flex:1;font-weight:600}
+.score-row input{width:90px;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;text-align:right}
+
+/* 로딩 / 토스트 */
+#loading{position:fixed;inset:0;background:rgba(250,248,240,.85);display:flex;align-items:center;
+  justify-content:center;z-index:100;flex-direction:column;gap:12px}
+.ball{width:34px;height:34px;border-radius:50%;background:#fff;border:2px solid var(--line);
+  box-shadow:inset -5px -5px 8px rgba(0,0,0,.08);animation:bounce .7s infinite alternate ease-in}
+@keyframes bounce{to{transform:translateY(-18px)}}
+#loading p{font-size:13.5px;color:var(--ink-soft);font-weight:600}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);
+  background:var(--green-950);color:#fff;font-size:13.5px;font-weight:600;padding:11px 20px;
+  border-radius:30px;transition:transform .25s;z-index:110}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.db-link{font-size:12.5px;color:var(--ink-soft)}
+.db-link a{color:var(--green-800);font-weight:700}
+@media(prefers-reduced-motion:reduce){.ball{animation:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1><span class="flag">⛳</span> 골프클럽 관리</h1>
+    <span class="sub" id="dbLink"></span>
+  </div>
+  <nav>
+    <button class="on" data-tab="dash" onclick="go('dash',this)">대시보드</button>
+    <button data-tab="members" onclick="go('members',this)">회원</button>
+    <button data-tab="events" onclick="go('events',this)">모임 일정</button>
+    <button data-tab="scores" onclick="go('scores',this)">스코어·랭킹</button>
+    <button data-tab="fees" onclick="go('fees',this)">회비</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 대시보드 -->
+  <section id="tab-dash">
+    <div class="stats">
+      <div class="stat"><div class="label">회원 수</div><div class="value" id="stMembers">-</div></div>
+      <div class="stat"><div class="label">다음 모임</div><div class="value" id="stNext" style="font-size:17px">-</div></div>
+      <div class="stat"><div class="label">회비 잔액</div><div class="value" id="stBalance">-</div></div>
+      <div class="stat"><div class="label">올해 라운딩</div><div class="value" id="stRounds">-</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>🏆 랭킹 (평균 타수 TOP 5)</h3><div id="dashRank"></div></div>
+      <div class="card"><h3>📅 다가오는 모임</h3><div id="dashEvents"></div></div>
+    </div>
+  </section>
+
+  <!-- 회원 -->
+  <section id="tab-members" hidden>
+    <div class="page-head"><h2>회원 명단</h2>
+      <button class="btn btn-primary" onclick="openMember()">＋ 회원 등록</button></div>
+    <div class="card"><div id="memberList"></div></div>
+  </section>
+
+  <!-- 모임 -->
+  <section id="tab-events" hidden>
+    <div class="page-head"><h2>모임 일정</h2>
+      <button class="btn btn-primary" onclick="openEvent()">＋ 모임 등록</button></div>
+    <div class="card"><div id="eventList"></div></div>
+  </section>
+
+  <!-- 스코어 -->
+  <section id="tab-scores" hidden>
+    <div class="page-head"><h2>스코어 · 랭킹</h2>
+      <button class="btn btn-primary" onclick="openScore()">＋ 스코어 입력</button></div>
+    <div class="grid2">
+      <div class="card"><h3>🏆 시즌 랭킹</h3><div id="rankList"></div></div>
+      <div class="card"><h3>최근 기록</h3><div id="scoreList"></div></div>
+    </div>
+  </section>
+
+  <!-- 회비 -->
+  <section id="tab-fees" hidden>
+    <div class="page-head"><h2>회비 관리</h2>
+      <button class="btn btn-primary" onclick="openFee()">＋ 내역 등록</button></div>
+    <div class="stats">
+      <div class="stat"><div class="label">총 수입</div><div class="value" id="feeIn" style="color:var(--green-800)">-</div></div>
+      <div class="stat"><div class="label">총 지출</div><div class="value" id="feeOut" style="color:var(--flag)">-</div></div>
+      <div class="stat"><div class="label">잔액</div><div class="value" id="feeBal">-</div></div>
+    </div>
+    <div class="card"><div id="feeList"></div></div>
+  </section>
+</main>
+
+<!-- 회원 모달 -->
+<div class="modal-bg" id="mMember">
+  <div class="modal">
+    <h3 id="mMemberTitle">회원 등록</h3>
+    <input type="hidden" id="fmId">
+    <div class="field"><label>이름 *</label><input id="fmName"></div>
+    <div class="row2">
+      <div class="field"><label>연락처</label><input id="fmPhone" placeholder="010-0000-0000"></div>
+      <div class="field"><label>핸디캡</label><input id="fmHandi" type="number" step="1"></div>
+    </div>
+    <div class="field"><label>가입일</label><input id="fmJoin" type="date"></div>
+    <div class="field"><label>비고</label><input id="fmNote"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mMember')">취소</button>
+      <button class="btn btn-primary" onclick="submitMember()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 모임 모달 -->
+<div class="modal-bg" id="mEvent">
+  <div class="modal">
+    <h3 id="mEventTitle">모임 등록</h3>
+    <input type="hidden" id="feId">
+    <div class="row2">
+      <div class="field"><label>날짜 *</label><input id="feDate" type="date"></div>
+      <div class="field"><label>티오프</label><input id="feTee" type="time"></div>
+    </div>
+    <div class="field"><label>골프장 *</label><input id="feCourse"></div>
+    <div class="field"><label>참가자 (쉼표로 구분)</label><textarea id="fePlayers" rows="2"></textarea></div>
+    <div class="field"><label>메모</label><input id="feMemo"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mEvent')">취소</button>
+      <button class="btn btn-primary" onclick="submitEvent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 스코어 모달 -->
+<div class="modal-bg" id="mScore">
+  <div class="modal">
+    <h3>스코어 입력</h3>
+    <div class="field"><label>모임 선택 *</label><select id="fsEvent"></select></div>
+    <div class="field"><label>회원별 타수 (빈칸은 저장 안 됨)</label>
+      <div id="fsRows" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mScore')">취소</button>
+      <button class="btn btn-primary" onclick="submitScore()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 회비 모달 -->
+<div class="modal-bg" id="mFee">
+  <div class="modal">
+    <h3 id="mFeeTitle">회비 내역 등록</h3>
+    <input type="hidden" id="ffId">
+    <div class="row2">
+      <div class="field"><label>날짜 *</label><input id="ffDate" type="date"></div>
+      <div class="field"><label>구분 *</label>
+        <select id="ffType"><option value="수입">수입</option><option value="지출">지출</option></select></div>
+    </div>
+    <div class="field"><label>내용 *</label><input id="ffDesc" placeholder="예: 3월 회비, 그린피 지원"></div>
+    <div class="row2">
+      <div class="field"><label>금액 (원) *</label><input id="ffAmount" type="number" step="1000"></div>
+      <div class="field"><label>회원명</label><input id="ffMember"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mFee')">취소</button>
+      <button class="btn btn-primary" onclick="submitFee()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading"><div class="ball"></div><p>구글드라이브 연결 중...</p></div>
+<div id="toast"></div>
+
+<script>
+let DATA = {members:[], events:[], scores:[], fees:[], dbUrl:''};
+
+/* ---------- 서버 통신 ---------- */
+function loading(on){document.getElementById('loading').style.display = on ? 'flex' : 'none';}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+// Apps Script 웹앱 배포 URL (재배포로 URL이 바뀌면 여기만 수정)
+const API_URL = 'https://script.google.com/macros/s/AKfycbwPZW6f8IjVFcNTqpa-6sGrfLozvSVBv59Tor84Q5nSIjXndOcUJeSSiWgl9TttUjbn/exec';
+
+function call(action, payload, done){
+  loading(true);
+  fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload }) })
+    .then(r => r.json())
+    .then(res => {
+      loading(false);
+      if(res.error){ alert('오류: ' + res.error); return; }
+      done(res.data);
+    })
+    .catch(err => { loading(false); alert('연결 오류: ' + err.message + '\n(웹앱 배포 시 액세스 권한을 "모든 사용자"로 설정했는지 확인하세요)'); });
+}
+function loadAll(){
+  call('getAll', null, d => {
+    DATA = d;
+    document.getElementById('dbLink').innerHTML =
+      '<span class="db-link">DB: <a href="'+DATA.dbUrl+'" target="_blank">구글시트 열기 ↗</a></span>';
+    renderAll();
+  });
+}
+
+/* ---------- 탭 ---------- */
+function go(tab, btn){
+  document.querySelectorAll('main section').forEach(s => s.hidden = true);
+  document.getElementById('tab-'+tab).hidden = false;
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function openModal(id){document.getElementById(id).classList.add('show');}
+document.querySelectorAll('.modal-bg').forEach(m =>
+  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('show'); }));
+
+/* ---------- 렌더링 ---------- */
+const won = n => Number(n||0).toLocaleString('ko-KR');
+const esc = s => String(s??'').replace(/</g,'&lt;');
+const today = () => new Date().toISOString().slice(0,10);
+
+function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); }
+
+function renderDash(){
+  document.getElementById('stMembers').innerHTML = DATA.members.length + '<small> 명</small>';
+  const upcoming = DATA.events.filter(e => e['날짜'] >= today()).sort((a,b)=>a['날짜']<b['날짜']?-1:1);
+  document.getElementById('stNext').textContent = upcoming.length
+    ? upcoming[0]['날짜'] + ' ' + upcoming[0]['골프장'] : '예정 없음';
+  const bal = DATA.fees.reduce((s,f)=> s + (f['구분']==='수입'?1:-1)*Number(f['금액']||0), 0);
+  document.getElementById('stBalance').innerHTML = won(bal) + '<small> 원</small>';
+  const yr = new Date().getFullYear().toString();
+  document.getElementById('stRounds').innerHTML =
+    DATA.events.filter(e => String(e['날짜']).startsWith(yr) && e['날짜'] <= today()).length + '<small> 회</small>';
+
+  document.getElementById('dashRank').innerHTML = rankTable(5);
+  document.getElementById('dashEvents').innerHTML = upcoming.length
+    ? '<table>' + upcoming.slice(0,5).map(e =>
+        '<tr><td style="width:110px;font-weight:700">'+e['날짜']+'</td><td>'+esc(e['골프장'])+'</td><td style="color:var(--ink-soft)">'+esc(e['티오프']||'')+'</td></tr>'
+      ).join('') + '</table>'
+    : '<div class="empty">예정된 모임이 없습니다. 모임 일정 탭에서 등록하세요.</div>';
+}
+
+function rankTable(limit){
+  const map = {};
+  DATA.scores.forEach(s => {
+    const k = s['이름']; if(!k) return;
+    (map[k] = map[k] || []).push(Number(s['타수']));
+  });
+  const ranks = Object.keys(map).map(name => ({
+    name, cnt: map[name].length,
+    avg: map[name].reduce((a,b)=>a+b,0)/map[name].length,
+    best: Math.min(...map[name])
+  })).sort((a,b)=>a.avg-b.avg);
+  if(!ranks.length) return '<div class="empty">스코어 기록이 없습니다.</div>';
+  const medal = ['🥇','🥈','🥉'];
+  return '<table><tr><th style="width:50px">순위</th><th>이름</th><th class="num">평균</th><th class="num">베스트</th><th class="num">라운드</th></tr>' +
+    ranks.slice(0, limit||99).map((r,i) =>
+      '<tr><td class="rank-medal">'+(medal[i]||(i+1))+'</td><td'+(i===0?' class="rank-1"':'')+'>'+esc(r.name)+'</td>'+
+      '<td class="num" style="font-weight:700">'+r.avg.toFixed(1)+'</td><td class="num">'+r.best+'</td><td class="num">'+r.cnt+'</td></tr>'
+    ).join('') + '</table>';
+}
+
+function renderMembers(){
+  const el = document.getElementById('memberList');
+  if(!DATA.members.length){ el.innerHTML = '<div class="empty">등록된 회원이 없습니다.</div>'; return; }
+  el.innerHTML = '<table><tr><th>이름</th><th>연락처</th><th class="num">핸디캡</th><th>가입일</th><th>비고</th><th style="width:120px"></th></tr>' +
+    DATA.members.map(m =>
+      '<tr><td style="font-weight:700">'+esc(m['이름'])+'</td><td>'+esc(m['연락처'])+'</td>'+
+      '<td class="num">'+esc(m['핸디캡'])+'</td><td>'+esc(m['가입일'])+'</td><td>'+esc(m['비고'])+'</td>'+
+      '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button> '+
+      '<button class="btn btn-sm btn-danger" onclick="delMember('+m.ID+')">삭제</button></td></tr>'
+    ).join('') + '</table>';
+}
+
+function renderEvents(){
+  const el = document.getElementById('eventList');
+  if(!DATA.events.length){ el.innerHTML = '<div class="empty">등록된 모임이 없습니다.</div>'; return; }
+  const sorted = [...DATA.events].sort((a,b)=>a['날짜']<b['날짜']?1:-1);
+  el.innerHTML = '<table><tr><th>날짜</th><th>티오프</th><th>골프장</th><th>참가자</th><th>메모</th><th style="width:120px"></th></tr>' +
+    sorted.map(e =>
+      '<tr><td style="font-weight:700">'+esc(e['날짜'])+'</td><td>'+esc(e['티오프'])+'</td><td>'+esc(e['골프장'])+'</td>'+
+      '<td style="font-size:13px">'+esc(e['참가자'])+'</td><td>'+esc(e['메모'])+'</td>'+
+      '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openEvent('+e.ID+')">수정</button> '+
+      '<button class="btn btn-sm btn-danger" onclick="delEvent('+e.ID+')">삭제</button></td></tr>'
+    ).join('') + '</table>';
+}
+
+function renderScores(){
+  document.getElementById('rankList').innerHTML = rankTable();
+  const el = document.getElementById('scoreList');
+  if(!DATA.scores.length){ el.innerHTML = '<div class="empty">스코어 기록이 없습니다.</div>'; return; }
+  const sorted = [...DATA.scores].sort((a,b)=>b.ID-a.ID).slice(0,30);
+  el.innerHTML = '<table><tr><th>날짜</th><th>골프장</th><th>이름</th><th class="num">타수</th><th></th></tr>' +
+    sorted.map(s =>
+      '<tr><td>'+esc(s['날짜'])+'</td><td>'+esc(s['골프장'])+'</td><td style="font-weight:700">'+esc(s['이름'])+'</td>'+
+      '<td class="num" style="font-weight:700">'+esc(s['타수'])+'</td>'+
+      '<td style="text-align:right"><button class="btn btn-sm btn-danger" onclick="delScore('+s.ID+')">삭제</button></td></tr>'
+    ).join('') + '</table>';
+}
+
+function renderFees(){
+  let inSum=0, outSum=0;
+  DATA.fees.forEach(f => f['구분']==='수입' ? inSum+=Number(f['금액']||0) : outSum+=Number(f['금액']||0));
+  document.getElementById('feeIn').innerHTML = won(inSum)+'<small> 원</small>';
+  document.getElementById('feeOut').innerHTML = won(outSum)+'<small> 원</small>';
+  document.getElementById('feeBal').innerHTML = won(inSum-outSum)+'<small> 원</small>';
+  const el = document.getElementById('feeList');
+  if(!DATA.fees.length){ el.innerHTML = '<div class="empty">회비 내역이 없습니다.</div>'; return; }
+  const sorted = [...DATA.fees].sort((a,b)=>a['날짜']<b['날짜']?1:-1);
+  el.innerHTML = '<table><tr><th>날짜</th><th>구분</th><th>내용</th><th class="num">금액</th><th>회원명</th><th style="width:120px"></th></tr>' +
+    sorted.map(f =>
+      '<tr><td>'+esc(f['날짜'])+'</td><td><span class="badge badge-'+(f['구분']==='수입'?'in':'out')+'">'+esc(f['구분'])+'</span></td>'+
+      '<td>'+esc(f['내용'])+'</td><td class="num" style="font-weight:700">'+won(f['금액'])+'</td><td>'+esc(f['회원명'])+'</td>'+
+      '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openFee('+f.ID+')">수정</button> '+
+      '<button class="btn btn-sm btn-danger" onclick="delFee('+f.ID+')">삭제</button></td></tr>'
+    ).join('') + '</table>';
+}
+
+/* ---------- 회원 ---------- */
+function openMember(id){
+  const m = id ? DATA.members.find(x=>x.ID==id) : null;
+  document.getElementById('mMemberTitle').textContent = m ? '회원 수정' : '회원 등록';
+  document.getElementById('fmId').value = m ? m.ID : '';
+  document.getElementById('fmName').value = m ? m['이름'] : '';
+  document.getElementById('fmPhone').value = m ? m['연락처'] : '';
+  document.getElementById('fmHandi').value = m ? m['핸디캡'] : '';
+  document.getElementById('fmJoin').value = m ? m['가입일'] : today();
+  document.getElementById('fmNote').value = m ? m['비고'] : '';
+  openModal('mMember');
+}
+function submitMember(){
+  const name = document.getElementById('fmName').value.trim();
+  if(!name){ alert('이름을 입력하세요.'); return; }
+  const m = { ID: document.getElementById('fmId').value || null,
+    '이름': name, '연락처': document.getElementById('fmPhone').value,
+    '핸디캡': document.getElementById('fmHandi').value,
+    '가입일': document.getElementById('fmJoin').value, '비고': document.getElementById('fmNote').value };
+  closeModal('mMember');
+  call('saveMember', m, d => { DATA.members = d; renderAll(); toast('저장했습니다'); });
+}
+function delMember(id){
+  if(!confirm('이 회원을 삭제할까요?')) return;
+  call('deleteMember', {ID:id}, d => { DATA.members = d; renderAll(); toast('삭제했습니다'); });
+}
+
+/* ---------- 모임 ---------- */
+function openEvent(id){
+  const e = id ? DATA.events.find(x=>x.ID==id) : null;
+  document.getElementById('mEventTitle').textContent = e ? '모임 수정' : '모임 등록';
+  document.getElementById('feId').value = e ? e.ID : '';
+  document.getElementById('feDate').value = e ? e['날짜'] : today();
+  document.getElementById('feTee').value = e ? e['티오프'] : '';
+  document.getElementById('feCourse').value = e ? e['골프장'] : '';
+  document.getElementById('fePlayers').value = e ? e['참가자'] : DATA.members.map(m=>m['이름']).join(', ');
+  document.getElementById('feMemo').value = e ? e['메모'] : '';
+  openModal('mEvent');
+}
+function submitEvent(){
+  const date = document.getElementById('feDate').value, course = document.getElementById('feCourse').value.trim();
+  if(!date || !course){ alert('날짜와 골프장을 입력하세요.'); return; }
+  const e = { ID: document.getElementById('feId').value || null,
+    '날짜': date, '골프장': course, '티오프': document.getElementById('feTee').value,
+    '참가자': document.getElementById('fePlayers').value, '메모': document.getElementById('feMemo').value };
+  closeModal('mEvent');
+  call('saveEvent', e, d => { DATA.events = d; renderAll(); toast('저장했습니다'); });
+}
+function delEvent(id){
+  if(!confirm('이 모임을 삭제할까요?')) return;
+  call('deleteEvent', {ID:id}, d => { DATA.events = d; renderAll(); toast('삭제했습니다'); });
+}
+
+/* ---------- 스코어 ---------- */
+function openScore(){
+  if(!DATA.events.length){ alert('먼저 모임을 등록하세요.'); return; }
+  if(!DATA.members.length){ alert('먼저 회원을 등록하세요.'); return; }
+  const sel = document.getElementById('fsEvent');
+  sel.innerHTML = [...DATA.events].sort((a,b)=>a['날짜']<b['날짜']?1:-1)
+    .map(e => '<option value="'+e.ID+'">'+e['날짜']+' · '+esc(e['골프장'])+'</option>').join('');
+  document.getElementById('fsRows').innerHTML = DATA.members.map(m =>
+    '<div class="score-row"><span>'+esc(m['이름'])+'</span>'+
+    '<input type="number" min="50" max="150" placeholder="타수" data-id="'+m.ID+'" data-name="'+esc(m['이름'])+'"></div>'
+  ).join('');
+  openModal('mScore');
+}
+function submitScore(){
+  const eid = document.getElementById('fsEvent').value;
+  const ev = DATA.events.find(x=>x.ID==eid);
+  const rows = [];
+  document.querySelectorAll('#fsRows input').forEach(inp => {
+    if(inp.value !== '') rows.push({'회원ID': inp.dataset.id, '이름': inp.dataset.name, '타수': Number(inp.value)});
+  });
+  if(!rows.length){ alert('타수를 하나 이상 입력하세요.'); return; }
+  closeModal('mScore');
+  call('saveScores', {'모임ID': eid, '날짜': ev['날짜'], '골프장': ev['골프장'], rows},
+    d => { DATA.scores = d; renderAll(); toast('스코어를 저장했습니다'); });
+}
+function delScore(id){
+  if(!confirm('이 기록을 삭제할까요?')) return;
+  call('deleteScore', {ID:id}, d => { DATA.scores = d; renderAll(); toast('삭제했습니다'); });
+}
+
+/* ---------- 회비 ---------- */
+function openFee(id){
+  const f = id ? DATA.fees.find(x=>x.ID==id) : null;
+  document.getElementById('mFeeTitle').textContent = f ? '회비 내역 수정' : '회비 내역 등록';
+  document.getElementById('ffId').value = f ? f.ID : '';
+  document.getElementById('ffDate').value = f ? f['날짜'] : today();
+  document.getElementById('ffType').value = f ? f['구분'] : '수입';
+  document.getElementById('ffDesc').value = f ? f['내용'] : '';
+  document.getElementById('ffAmount').value = f ? f['금액'] : '';
+  document.getElementById('ffMember').value = f ? f['회원명'] : '';
+  openModal('mFee');
+}
+function submitFee(){
+  const desc = document.getElementById('ffDesc').value.trim(), amt = document.getElementById('ffAmount').value;
+  if(!desc || !amt){ alert('내용과 금액을 입력하세요.'); return; }
+  const f = { ID: document.getElementById('ffId').value || null,
+    '날짜': document.getElementById('ffDate').value, '구분': document.getElementById('ffType').value,
+    '내용': desc, '금액': Number(amt), '회원명': document.getElementById('ffMember').value };
+  closeModal('mFee');
+  call('saveFee', f, d => { DATA.fees = d; renderAll(); toast('저장했습니다'); });
+}
+function delFee(id){
+  if(!confirm('이 내역을 삭제할까요?')) return;
+  call('deleteFee', {ID:id}, d => { DATA.fees = d; renderAll(); toast('삭제했습니다'); });
+}
+
+/* ---------- 시작 ---------- */
+loadAll();
+</script>
+</body>
+</html>
