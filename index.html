@@ -825,21 +825,23 @@ async function submitPost(){
   const prog = document.getElementById('fpProgress');
   btn.disabled = true;
   try {
-    const photos = [];
-    for(let i = 0; i < files.length; i++){
-      prog.textContent = '사진 압축 중... ('+(i+1)+'/'+files.length+')';
-      const base64 = await compressImage(files[i], 50*1024);
-      photos.push({ '파일명': today()+'_'+String(i+1).padStart(2,'0')+'_'+files[i].name.replace(/\.[^.]+$/,'')+'.jpg', base64 });
-    }
-    prog.textContent = '등록 중...';
-    DATA.posts = await callAsync('savePost', {
+    prog.textContent = '글 저장 중...';
+    const saved = await callAsync('savePost', {
       ID: document.getElementById('fpId').value || null,
       '날짜': document.getElementById('fpDate').value,
       '작성자': author, '제목': title,
       '종류': document.getElementById('fpType').value,
-      '내용': document.getElementById('fpContent').value,
-      photos
+      '내용': document.getElementById('fpContent').value
     });
+    const postId = saved.ID;
+    let posts = saved.posts;
+    for(let i = 0; i < files.length; i++){
+      prog.textContent = '사진 업로드 중... ('+(i+1)+'/'+files.length+')';
+      const base64 = await compressImage(files[i], 50*1024);
+      const name = today()+'_'+String(i+1).padStart(2,'0')+'_'+files[i].name.replace(/\.[^.]+$/,'')+'.jpg';
+      posts = await callAsync('addPhoto', { postId, '파일명': name, base64 });
+    }
+    DATA.posts = posts;
     closeModal('mPost'); renderBoard(); toast('게시글을 등록했습니다');
   } catch(err){ alert('등록 오류: ' + err.message); }
   btn.disabled = false; prog.textContent = '';
