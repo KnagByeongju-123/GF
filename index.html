@@ -730,7 +730,7 @@ function renderBoard(){
     const isNotice = type === '공지';
     const thumbs = postFiles(p).map(f =>
       '<a href="https://drive.google.com/file/d/'+f+'/view" target="_blank">'+
-      '<img loading="lazy" src="https://drive.google.com/thumbnail?id='+f+'&sz=w400" alt="첨부사진"></a>').join('');
+      '<img loading="lazy" data-img="'+f+'" alt="첨부사진"></a>').join('');
     return '<article class="post'+(isNotice?' notice':'')+'">'+
       '<div class="post-head"><h4><span class="cat-badge'+(isNotice?' notice':'')+'">'+
       (isNotice?'📌 공지':esc(type))+'</span>'+esc(p['제목'])+'</h4>'+
@@ -742,6 +742,21 @@ function renderBoard(){
       '<button class="btn btn-sm btn-danger" onclick="delPost('+p.ID+')">삭제</button></div>' : '')+
       '</article>';
   }).join('');
+  loadBoardImages();
+}
+
+// 프록시로 이미지 순차 로딩 (동시 요청 폭주 방지)
+async function loadBoardImages(){
+  const imgs = [...document.querySelectorAll('#boardList img[data-img]')];
+  for(const el of imgs){
+    const id = el.getAttribute('data-img');
+    el.removeAttribute('data-img');
+    try{
+      const r = await fetch(API_URL + '?img=' + encodeURIComponent(id));
+      const dataUrl = await r.text();
+      if(dataUrl.startsWith('data:')) el.src = dataUrl;
+    }catch(e){}
+  }
 }
 
 function openPost(id){
