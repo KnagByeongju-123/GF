@@ -25,7 +25,12 @@ body{font-family:'Pretendard',-apple-system,sans-serif;color:var(--ink);font-siz
 header{background:linear-gradient(160deg, #123022 0%, var(--green-950) 55%, #0A1B13 100%);
   color:#fff;padding:18px 24px 0;border-bottom:3px solid var(--gold);
   box-shadow:0 2px 14px rgba(14,36,26,.25)}
-.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+#authArea{font-size:13px;color:#C9DCCF}
+#authArea b{color:#E8B14B}
+#authArea button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;
+  font:inherit;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;margin-left:8px}
+#authArea button:hover{background:rgba(255,255,255,.22)}
 .brand h1{font-size:21px;font-weight:800;letter-spacing:-.3px}
 .brand h1 .flag{color:#E8B14B}
 .brand .sub{font-size:12.5px;color:#9DB8A6}
@@ -111,6 +116,15 @@ td.num,th.num{text-align:right}
 #toast.show{transform:translateX(-50%) translateY(0)}
 .db-link{font-size:12.5px;color:var(--ink-soft)}
 .db-link a{color:var(--green-800);font-weight:700}
+/* 사진 갤러리 */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;padding:16px}
+.photo-card{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;
+  box-shadow:0 1px 3px rgba(35,40,31,.06)}
+.photo-card a{display:block}
+.photo-card img{width:100%;height:130px;object-fit:cover;display:block;background:#EDE8DA}
+.photo-meta{padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.photo-meta .info{font-size:12px;color:var(--ink-soft);line-height:1.4;min-width:0}
+.photo-meta .info b{display:block;color:var(--ink);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(prefers-reduced-motion:reduce){.ball{animation:none}}
 </style>
 </head>
@@ -120,6 +134,7 @@ td.num,th.num{text-align:right}
   <div class="brand">
     <h1><span class="flag">⛳</span> 골프클럽 관리</h1>
     <span class="sub" id="dbLink"></span>
+    <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
     <button class="on" data-tab="dash" onclick="go('dash',this)">대시보드</button>
@@ -127,6 +142,7 @@ td.num,th.num{text-align:right}
     <button data-tab="events" onclick="go('events',this)">모임 일정</button>
     <button data-tab="scores" onclick="go('scores',this)">스코어·랭킹</button>
     <button data-tab="fees" onclick="go('fees',this)">회비</button>
+    <button data-tab="photos" onclick="go('photos',this)">사진</button>
   </nav>
 </header>
 
@@ -148,7 +164,7 @@ td.num,th.num{text-align:right}
   <!-- 회원 -->
   <section id="tab-members" hidden>
     <div class="page-head"><h2>회원 명단</h2>
-      <button class="btn btn-primary" onclick="openMember()">＋ 회원 등록</button></div>
+      <button class="btn btn-primary admin-only" onclick="openMember()">＋ 회원 등록</button></div>
     <div class="card"><div id="memberList"></div></div>
   </section>
 
@@ -172,13 +188,20 @@ td.num,th.num{text-align:right}
   <!-- 회비 -->
   <section id="tab-fees" hidden>
     <div class="page-head"><h2>회비 관리</h2>
-      <button class="btn btn-primary" onclick="openFee()">＋ 내역 등록</button></div>
+      <button class="btn btn-primary admin-only" onclick="openFee()">＋ 내역 등록</button></div>
     <div class="stats">
       <div class="stat"><div class="label">총 수입</div><div class="value" id="feeIn" style="color:var(--green-800)">-</div></div>
       <div class="stat"><div class="label">총 지출</div><div class="value" id="feeOut" style="color:var(--flag)">-</div></div>
       <div class="stat"><div class="label">잔액</div><div class="value" id="feeBal">-</div></div>
     </div>
     <div class="card"><div id="feeList"></div></div>
+  </section>
+
+  <!-- 사진 -->
+  <section id="tab-photos" hidden>
+    <div class="page-head"><h2>모임 사진</h2>
+      <button class="btn btn-primary" onclick="openPhoto()">＋ 사진 업로드</button></div>
+    <div class="card"><div id="photoGrid" class="photo-grid"></div></div>
   </section>
 </main>
 
@@ -193,6 +216,12 @@ td.num,th.num{text-align:right}
       <div class="field"><label>핸디캡</label><input id="fmHandi" type="number" step="1"></div>
     </div>
     <div class="field"><label>가입일</label><input id="fmJoin" type="date"></div>
+    <div class="row2">
+      <div class="field"><label>직책</label>
+        <select id="fmRole"><option>일반</option><option>회장</option><option>총무</option></select></div>
+      <div class="field"><label>PIN (로그인 비밀번호)</label>
+        <input id="fmPin" type="password" inputmode="numeric" placeholder="수정 시 빈칸=유지"></div>
+    </div>
     <div class="field"><label>비고</label><input id="fmNote"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('mMember')">취소</button>
@@ -257,11 +286,86 @@ td.num,th.num{text-align:right}
   </div>
 </div>
 
+<!-- 로그인 모달 -->
+<div class="modal-bg" id="mLogin">
+  <div class="modal">
+    <h3>관리자 로그인 (회장·총무)</h3>
+    <div class="field"><label>이름</label><input id="flName"></div>
+    <div class="field"><label>PIN</label><input id="flPin" type="password" inputmode="numeric"
+      onkeydown="if(event.key==='Enter')submitLogin()"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mLogin')">취소</button>
+      <button class="btn btn-primary" onclick="submitLogin()">로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 사진 모달 -->
+<div class="modal-bg" id="mPhoto">
+  <div class="modal">
+    <h3>사진 업로드</h3>
+    <div class="row2">
+      <div class="field"><label>날짜 *</label><input id="fpDate" type="date"></div>
+      <div class="field"><label>모임</label><select id="fpEvent"></select></div>
+    </div>
+    <div class="field"><label>사진 선택 (여러 장 가능)</label>
+      <input id="fpFiles" type="file" accept="image/*" multiple>
+      <p style="font-size:12px;color:var(--ink-soft);margin-top:5px">자동으로 50KB 이하 JPEG로 압축되어 구글드라이브에 저장됩니다.</p>
+    </div>
+    <div id="fpProgress" style="font-size:13px;font-weight:700;color:var(--green-800)"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('mPhoto')">취소</button>
+      <button class="btn btn-primary" id="fpUploadBtn" onclick="submitPhotos()">업로드</button>
+    </div>
+  </div>
+</div>
+
 <div id="loading"><div class="ball"></div><p>구글드라이브 연결 중...</p></div>
 <div id="toast"></div>
 
 <script>
-let DATA = {members:[], events:[], scores:[], fees:[], dbUrl:''};
+let DATA = {members:[], events:[], scores:[], fees:[], photos:[], dbUrl:''};
+
+/* ---------- 로그인/권한 ---------- */
+function storeSet(k,v){ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function storeGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+let AUTH = storeGet('golfAuth'); // {이름, PIN, 직책}
+
+function isAdmin(){
+  if(AUTH && (AUTH['직책']==='회장' || AUTH['직책']==='총무')) return true;
+  // 관리자가 아직 아무도 없으면 초기 설정을 위해 전체 허용
+  return DATA.members.length === 0 || !DATA.members.some(m => m['직책']==='회장' || m['직책']==='총무');
+}
+
+function updateAuthUI(){
+  const el = document.getElementById('authArea');
+  el.innerHTML = AUTH
+    ? '<b>'+esc(AUTH['직책'])+'</b> '+esc(AUTH['이름'])+'님 <button onclick="logout()">로그아웃</button>'
+    : '<button onclick="openLogin()">관리자 로그인</button>';
+  document.querySelectorAll('.admin-only').forEach(b => b.style.display = isAdmin() ? '' : 'none');
+}
+
+function openLogin(){
+  document.getElementById('flName').value = '';
+  document.getElementById('flPin').value = '';
+  openModal('mLogin');
+}
+function submitLogin(){
+  const name = document.getElementById('flName').value.trim();
+  const pin = document.getElementById('flPin').value;
+  if(!name || !pin){ alert('이름과 PIN을 입력하세요.'); return; }
+  call('login', {'이름': name, 'PIN': pin}, d => {
+    if(d['직책'] !== '회장' && d['직책'] !== '총무'){ alert('회장 또는 총무만 로그인할 수 있습니다.'); return; }
+    AUTH = {'이름': d['이름'], 'PIN': pin, '직책': d['직책']};
+    storeSet('golfAuth', AUTH);
+    closeModal('mLogin'); updateAuthUI(); renderAll();
+    toast(d['직책'] + ' ' + d['이름'] + '님 환영합니다');
+  });
+}
+function logout(){
+  AUTH = null; storeSet('golfAuth', null);
+  updateAuthUI(); renderAll(); toast('로그아웃했습니다');
+}
 
 /* ---------- 서버 통신 ---------- */
 function loading(on){document.getElementById('loading').style.display = on ? 'flex' : 'none';}
@@ -304,7 +408,7 @@ function norm(d){
 
 function call(action, payload, done){
   loading(true);
-  fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload }) })
+  fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload, auth: AUTH ? {'이름':AUTH['이름'],'PIN':AUTH['PIN']} : null }) })
     .then(r => r.json())
     .then(res => {
       loading(false);
@@ -316,6 +420,7 @@ function call(action, payload, done){
 function loadAll(){
   call('getAll', null, d => {
     DATA = d;
+    updateAuthUI();
     document.getElementById('dbLink').innerHTML =
       '<span class="db-link">DB: <a href="'+DATA.dbUrl+'" target="_blank">구글시트 열기 ↗</a></span>';
     renderAll();
@@ -339,7 +444,7 @@ const won = n => Number(n||0).toLocaleString('ko-KR');
 const esc = s => String(s??'').replace(/</g,'&lt;');
 const today = () => new Date().toISOString().slice(0,10);
 
-function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); }
+function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderPhotos(); }
 
 function renderDash(){
   document.getElementById('stMembers').innerHTML = DATA.members.length + '<small> 명</small>';
@@ -380,15 +485,21 @@ function rankTable(limit){
     ).join('') + '</table>';
 }
 
+function roleBadge(r){
+  if(r==='회장') return ' <span class="badge" style="background:#F3E8CB;color:#9C7A2A">회장</span>';
+  if(r==='총무') return ' <span class="badge badge-in">총무</span>';
+  return '';
+}
 function renderMembers(){
   const el = document.getElementById('memberList');
+  const admin = isAdmin();
   if(!DATA.members.length){ el.innerHTML = '<div class="empty">등록된 회원이 없습니다.</div>'; return; }
-  el.innerHTML = '<table><tr><th>이름</th><th>연락처</th><th class="num">핸디캡</th><th>가입일</th><th>비고</th><th style="width:120px"></th></tr>' +
+  el.innerHTML = '<table><tr><th>이름</th><th>연락처</th><th class="num">핸디캡</th><th>가입일</th><th>비고</th>'+(admin?'<th style="width:120px"></th>':'')+'</tr>' +
     DATA.members.map(m =>
-      '<tr><td style="font-weight:700">'+esc(m['이름'])+'</td><td>'+esc(m['연락처'])+'</td>'+
+      '<tr><td style="font-weight:700">'+esc(m['이름'])+roleBadge(m['직책'])+'</td><td>'+esc(m['연락처'])+'</td>'+
       '<td class="num">'+esc(m['핸디캡'])+'</td><td>'+esc(m['가입일'])+'</td><td>'+esc(m['비고'])+'</td>'+
-      '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button> '+
-      '<button class="btn btn-sm btn-danger" onclick="delMember('+m.ID+')">삭제</button></td></tr>'
+      (admin ? '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button> '+
+      '<button class="btn btn-sm btn-danger" onclick="delMember('+m.ID+')">삭제</button></td>' : '')+'</tr>'
     ).join('') + '</table>';
 }
 
@@ -427,12 +538,13 @@ function renderFees(){
   const el = document.getElementById('feeList');
   if(!DATA.fees.length){ el.innerHTML = '<div class="empty">회비 내역이 없습니다.</div>'; return; }
   const sorted = [...DATA.fees].sort((a,b)=>a['날짜']<b['날짜']?1:-1);
-  el.innerHTML = '<table><tr><th>날짜</th><th>구분</th><th>내용</th><th class="num">금액</th><th>회원명</th><th style="width:120px"></th></tr>' +
+  const admin = isAdmin();
+  el.innerHTML = '<table><tr><th>날짜</th><th>구분</th><th>내용</th><th class="num">금액</th><th>회원명</th>'+(admin?'<th style="width:120px"></th>':'')+'</tr>' +
     sorted.map(f =>
       '<tr><td>'+esc(f['날짜'])+'</td><td><span class="badge badge-'+(f['구분']==='수입'?'in':'out')+'">'+esc(f['구분'])+'</span></td>'+
       '<td>'+esc(f['내용'])+'</td><td class="num" style="font-weight:700">'+won(f['금액'])+'</td><td>'+esc(f['회원명'])+'</td>'+
-      '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openFee('+f.ID+')">수정</button> '+
-      '<button class="btn btn-sm btn-danger" onclick="delFee('+f.ID+')">삭제</button></td></tr>'
+      (admin ? '<td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="openFee('+f.ID+')">수정</button> '+
+      '<button class="btn btn-sm btn-danger" onclick="delFee('+f.ID+')">삭제</button></td>' : '')+'</tr>'
     ).join('') + '</table>';
 }
 
@@ -445,6 +557,8 @@ function openMember(id){
   document.getElementById('fmPhone').value = m ? m['연락처'] : '';
   document.getElementById('fmHandi').value = m ? m['핸디캡'] : '';
   document.getElementById('fmJoin').value = m ? m['가입일'] : today();
+  document.getElementById('fmRole').value = m ? (m['직책'] || '일반') : '일반';
+  document.getElementById('fmPin').value = '';
   document.getElementById('fmNote').value = m ? m['비고'] : '';
   openModal('mMember');
 }
@@ -454,7 +568,8 @@ function submitMember(){
   const m = { ID: document.getElementById('fmId').value || null,
     '이름': name, '연락처': document.getElementById('fmPhone').value,
     '핸디캡': document.getElementById('fmHandi').value,
-    '가입일': document.getElementById('fmJoin').value, '비고': document.getElementById('fmNote').value };
+    '가입일': document.getElementById('fmJoin').value, '비고': document.getElementById('fmNote').value,
+    '직책': document.getElementById('fmRole').value, 'PIN': document.getElementById('fmPin').value };
   closeModal('mMember');
   call('saveMember', m, d => { DATA.members = d; renderAll(); toast('저장했습니다'); });
 }
@@ -545,7 +660,97 @@ function delFee(id){
   call('deleteFee', {ID:id}, d => { DATA.fees = d; renderAll(); toast('삭제했습니다'); });
 }
 
+/* ---------- 사진 ---------- */
+function renderPhotos(){
+  const el = document.getElementById('photoGrid');
+  if(!DATA.photos || !DATA.photos.length){
+    el.innerHTML = '<div class="empty" style="grid-column:1/-1">등록된 사진이 없습니다.</div>'; return;
+  }
+  const sorted = [...DATA.photos].sort((a,b)=>b.ID-a.ID);
+  el.innerHTML = sorted.map(p =>
+    '<div class="photo-card">'+
+    '<a href="https://drive.google.com/file/d/'+p['파일ID']+'/view" target="_blank">'+
+    '<img loading="lazy" src="https://drive.google.com/thumbnail?id='+p['파일ID']+'&sz=w400" alt="'+esc(p['파일명'])+'"></a>'+
+    '<div class="photo-meta"><div class="info"><b>'+esc(p['모임']||'')+'</b>'+esc(p['날짜'])+'</div>'+
+    '<button class="btn btn-sm btn-danger" onclick="delPhoto('+p.ID+')">삭제</button></div></div>'
+  ).join('');
+}
+
+function openPhoto(){
+  document.getElementById('fpDate').value = today();
+  const sel = document.getElementById('fpEvent');
+  sel.innerHTML = '<option value="">(선택 안 함)</option>' +
+    [...DATA.events].sort((a,b)=>a['날짜']<b['날짜']?1:-1)
+      .map(e => '<option>'+e['날짜']+' '+esc(e['골프장'])+'</option>').join('');
+  document.getElementById('fpFiles').value = '';
+  document.getElementById('fpProgress').textContent = '';
+  openModal('mPhoto');
+}
+
+// 캔버스 축소 + 품질 조절로 50KB 이하 JPEG 생성
+function compressImage(file, maxBytes){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      let w = img.width, h = img.height;
+      const maxDim = 1280;
+      if(Math.max(w,h) > maxDim){ const r = maxDim/Math.max(w,h); w = Math.round(w*r); h = Math.round(h*r); }
+      const canvas = document.createElement('canvas');
+      const draw = () => {
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      };
+      draw();
+      let q = 0.85, dataUrl = canvas.toDataURL('image/jpeg', q);
+      const size = u => Math.ceil((u.length - u.indexOf(',') - 1) * 3/4);
+      while(size(dataUrl) > maxBytes){
+        if(q > 0.35){ q -= 0.1; }
+        else { w = Math.round(w*0.8); h = Math.round(h*0.8); q = 0.7; draw();
+               if(w < 200){ break; } }
+        dataUrl = canvas.toDataURL('image/jpeg', q);
+      }
+      resolve(dataUrl.substring(dataUrl.indexOf(',') + 1));
+    };
+    img.onerror = () => reject(new Error('이미지를 읽을 수 없습니다'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function callAsync(action, payload){
+  return fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload, auth: AUTH ? {'이름':AUTH['이름'],'PIN':AUTH['PIN']} : null }) })
+    .then(r => r.json())
+    .then(res => { if(res.error) throw new Error(res.error); return norm(res.data); });
+}
+
+async function submitPhotos(){
+  const files = document.getElementById('fpFiles').files;
+  if(!files.length){ alert('사진을 선택하세요.'); return; }
+  const date = document.getElementById('fpDate').value;
+  const eventName = document.getElementById('fpEvent').value;
+  const btn = document.getElementById('fpUploadBtn');
+  const prog = document.getElementById('fpProgress');
+  btn.disabled = true;
+  try {
+    for(let i = 0; i < files.length; i++){
+      prog.textContent = '압축 및 업로드 중... ('+(i+1)+'/'+files.length+')';
+      const base64 = await compressImage(files[i], 50*1024);
+      const name = date + '_' + String(i+1).padStart(2,'0') + '_' + files[i].name.replace(/\.[^.]+$/,'') + '.jpg';
+      DATA.photos = await callAsync('uploadPhoto',
+        { '날짜': date, '모임': eventName, '파일명': name, base64 });
+    }
+    closeModal('mPhoto'); renderPhotos(); toast(files.length + '장 업로드 완료');
+  } catch(err){ alert('업로드 오류: ' + err.message); }
+  btn.disabled = false; prog.textContent = '';
+}
+
+function delPhoto(id){
+  if(!confirm('이 사진을 삭제할까요? (드라이브 파일도 휴지통으로 이동)')) return;
+  call('deletePhoto', {ID:id}, d => { DATA.photos = d; renderPhotos(); toast('삭제했습니다'); });
+}
+
 /* ---------- 시작 ---------- */
+updateAuthUI();
 loadAll();
 </script>
 </body>
