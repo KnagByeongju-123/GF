@@ -165,8 +165,7 @@ td.num,th.num{text-align:right}
 
 <header>
   <div class="brand">
-    <h1><span class="flag">⛳</span> GF <span class="rev">Rev. 1.0</span></h1>
-    <span class="sub" id="dbLink"></span>
+    <h1><span class="flag">⛳</span> GF <span class="rev">Rev. 1.1</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -458,8 +457,6 @@ function loadAll(){
   call('getAll', null, d => {
     DATA = d;
     updateAuthUI();
-    document.getElementById('dbLink').innerHTML =
-      '<span class="db-link">DB: <a href="'+DATA.dbUrl+'" target="_blank">구글시트 열기 ↗</a></span>';
     renderAll();
   });
 }
