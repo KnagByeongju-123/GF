@@ -211,6 +211,17 @@ td.num,th.num{text-align:right}
 .ampm.on{background:linear-gradient(180deg,#3DDC84,#2BAF67);color:#07130C;border-color:transparent;
   box-shadow:0 2px 6px rgba(61,220,132,.3)}
 
+/* 마이페이지 */
+.my-hero{background:linear-gradient(150deg,#17402C,#0F241A);border:1px solid var(--line);
+  border-radius:14px;padding:20px;margin-bottom:16px}
+.my-hero h3{font-size:20px;font-weight:800;margin-bottom:2px}
+.my-hero .role{font-size:12.5px;color:#8FA79A}
+.my-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.my-stat{background:rgba(255,255,255,.06);border-radius:10px;padding:12px;text-align:center}
+.my-stat .v{font-size:22px;font-weight:800;color:#5FE29B}
+.my-stat .l{font-size:11.5px;color:#9DB8A6;margin-top:3px}
+@media(max-width:600px){.my-stat-row{grid-template-columns:1fr 1fr}}
+
 /* ===== 모바일 최적화 ===== */
 @media(max-width:600px){
   body{font-size:14px}
@@ -263,11 +274,12 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 5.7</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 5.8</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
     <button class="on" data-tab="dash" onclick="go('dash',this)">대시보드</button>
+    <button data-tab="mypage" onclick="go('mypage',this)">마이페이지</button>
     <button data-tab="members" onclick="go('members',this)">회원</button>
     <button data-tab="events" onclick="go('events',this)">모임 일정</button>
     <button data-tab="teams" onclick="go('teams',this)">조편성</button>
@@ -294,6 +306,12 @@ td.num,th.num{text-align:right}
       <div class="card"><h3>🏆 랭킹 (평균 타수 TOP 5)</h3><div id="dashRank"></div></div>
       <div class="card"><h3>📅 다가오는 모임</h3><div id="dashEvents"></div></div>
     </div>
+  </section>
+
+  <!-- 마이페이지 -->
+  <section id="tab-mypage" hidden>
+    <div class="page-head"><h2 id="myTitle">마이페이지</h2></div>
+    <div id="myBody"></div>
   </section>
 
   <!-- 회원 -->
@@ -773,7 +791,7 @@ const fmtTee = v => {
   return ap + ' ' + h + ':' + m[2];
 };
 
-function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderBoard(); renderRules(); renderRecords(); renderTeamSetup(); }
+function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderBoard(); renderRules(); renderRecords(); renderTeamSetup(); renderMypage(); }
 
 function renderDash(){
   document.getElementById('stMembers').innerHTML = DATA.members.length + '<small> 명</small>';
@@ -1308,6 +1326,84 @@ async function submitPost(){
 function delPost(id){
   if(!confirm('이 게시글을 삭제할까요? (첨부 사진도 드라이브 휴지통으로 이동)')) return;
   call('deletePost', {ID:id}, d => { DATA.posts = d; renderBoard(); toast('삭제했습니다'); });
+}
+
+/* ---------- 마이페이지 ---------- */
+function sparkline(vals, w, h){
+  if(vals.length < 2) return '';
+  const min = Math.min(...vals), max = Math.max(...vals), rng = (max-min)||1;
+  const pts = vals.map((v,i)=>{
+    const x = (i/(vals.length-1))*(w-8)+4;
+    const y = h-4 - ((v-min)/rng)*(h-8); // 타수는 낮을수록 좋음 → 값이 작으면 아래
+    return x.toFixed(1)+','+y.toFixed(1);
+  });
+  const last = pts[pts.length-1].split(',');
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:'+h+'px">'+
+    '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#3DDC84" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="3.5" fill="#5FE29B"/></svg>';
+}
+
+function renderMypage(){
+  const el = document.getElementById('myBody');
+  if(!el) return;
+  if(!AUTH){ el.innerHTML = '<div class="card"><div class="empty">로그인하면 나의 기록을 볼 수 있습니다.</div></div>'; return; }
+  const name = AUTH['이름'];
+  document.getElementById('myTitle').textContent = name + '님의 마이페이지';
+
+  // 내 이력(집계 Y) 시간순
+  const mine = DATA.scores.filter(s => s['이름']===name && s['집계']==='Y')
+    .sort((a,b)=> String(a['날짜'])<String(b['날짜'])?-1:1);
+  const vals = mine.map(s=>Number(s['타수']));
+  const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  const best = vals.length ? Math.min(...vals) : null;
+  const recentAvg = vals.length ? (vals.slice(-5).reduce((a,b)=>a+b,0)/Math.min(5,vals.length)) : null;
+
+  // 전체 순위 (전체 평균 기준)
+  const allAvg = {};
+  DATA.scores.forEach(s=>{ if(s['집계']==='Y'){ (allAvg[s['이름']]=allAvg[s['이름']]||[]).push(Number(s['타수'])); }});
+  const ranked = Object.keys(allAvg).map(n=>({n, a: allAvg[n].reduce((x,y)=>x+y,0)/allAvg[n].length})).sort((x,y)=>x.a-y.a);
+  const myRank = ranked.findIndex(r=>r.n===name)+1;
+
+  // 참석률(올해 모임 중 참가)
+  const yr = new Date().getFullYear().toString();
+  const yrEvents = DATA.events.filter(e=>String(e['날짜']).startsWith(yr));
+  const attended = yrEvents.filter(e=>String(e['참가자']||'').split(',').map(x=>x.trim()).indexOf(name)>=0).length;
+
+  let html = '<div class="my-hero">'+
+    '<h3>'+esc(name)+' <span class="role">'+(AUTH['직책']==='일반'?'회원':esc(AUTH['직책']))+'</span></h3>'+
+    '<div class="my-stat-row">'+
+    '<div class="my-stat"><div class="v">'+(avg?avg.toFixed(1):'-')+'</div><div class="l">평균타수</div></div>'+
+    '<div class="my-stat"><div class="v">'+(myRank||'-')+(myRank?'위':'')+'</div><div class="l">시즌 순위</div></div>'+
+    '<div class="my-stat"><div class="v">'+(best||'-')+'</div><div class="l">베스트</div></div>'+
+    '<div class="my-stat"><div class="v">'+(avg?(avg-72>0?'+':'')+(avg-72).toFixed(1):'-')+'</div><div class="l">핸디캡</div></div>'+
+    '</div></div>';
+
+  // 타수 추이 그래프
+  if(vals.length >= 2){
+    html += '<div class="card" style="margin-bottom:16px"><h3>📈 타수 추이 ('+vals.length+'회)</h3>'+
+      '<div style="padding:16px">'+sparkline(vals, 300, 70)+
+      '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:6px">'+
+      '<span>'+shortDate(mine[0]['날짜'])+'</span>'+
+      '<span>최근5회 평균 '+(recentAvg?recentAvg.toFixed(1):'-')+'</span>'+
+      '<span>'+shortDate(mine[mine.length-1]['날짜'])+'</span></div></div></div>';
+  }
+
+  // 올해 참석
+  html += '<div class="card" style="margin-bottom:16px"><h3>🗓 올해 활동</h3><div style="padding:14px 16px;font-size:14.5px">'+
+    '올해 모임 '+yrEvents.length+'회 중 <b style="color:#5FE29B">'+attended+'회</b> 참가'+
+    (yrEvents.length?' (참석률 '+Math.round(attended/yrEvents.length*100)+'%)':'')+'</div></div>';
+
+  // 최근 기록
+  if(mine.length){
+    const recent = [...mine].reverse().slice(0,10);
+    html += '<div class="card"><h3>최근 기록</h3><div><table><tr><th>날짜</th><th>골프장</th><th class="num">타수</th></tr>'+
+      recent.map(s=>'<tr><td style="white-space:nowrap">'+shortDate(s['날짜'])+'</td><td style="white-space:nowrap">'+esc(s['골프장'])+'</td><td class="num" style="font-weight:700">'+esc(s['타수'])+'</td></tr>').join('')+
+      '</table></div></div>';
+  } else {
+    html += '<div class="card"><div class="empty">아직 이력에 남은 기록이 없습니다.</div></div>';
+  }
+
+  el.innerHTML = html;
 }
 
 /* ---------- 기록표 ---------- */
