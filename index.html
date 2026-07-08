@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 5.8</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 6.0</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -345,7 +345,7 @@ td.num,th.num{text-align:right}
     <div class="page-head"><h2>🏆 평균타수 · 시즌 랭킹</h2>
       <span style="display:flex;align-items:center;gap:8px">
         <label style="font-size:13.5px;font-weight:700;color:var(--ink-soft)">평균 기준</label>
-        <select id="rankN" onchange="renderRank()" style="font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#121A15;color:var(--ink)">
+        <select id="rankN" onchange="setAvgN(this.value)" style="font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#121A15;color:var(--ink)">
           <option value="0">전체</option>
           <option value="3">최근 3회</option>
           <option value="5">최근 5회</option>
@@ -759,6 +759,7 @@ function call(action, payload, done){
 function loadAll(){
   call('getAll', null, d => {
     DATA = d;
+    if(d.settings && d.settings.avgN != null) AVG_N = Number(d.settings.avgN) || 0;
     updateAuthUI();
     renderAll();
   });
@@ -840,8 +841,18 @@ function rankTable(limit, recentN){
 }
 
 function renderRank(){
-  const n = Number(document.getElementById('rankN').value) || 0;
-  document.getElementById('rankList').innerHTML = rankTable(0, n);
+  const sel = document.getElementById('rankN');
+  sel.value = String(AVG_N);
+  document.getElementById('rankList').innerHTML = rankTable(0, AVG_N);
+}
+function setAvgN(v){
+  AVG_N = Number(v)||0;
+  renderRank(); renderScores(); renderMypage();
+  if(isAdmin()){ // 회장·총무가 바꾸면 전체 공유되도록 서버 저장
+    call('saveSetting', {key:'avgN', value:AVG_N}, ()=>toast('평균 기준을 저장했습니다 (전체 공유)'));
+  } else {
+    toast('이 기기에서만 보기 변경됩니다 (전체 기준은 회장·총무가 설정)');
+  }
 }
 
 function roleBadge(r){
@@ -929,20 +940,26 @@ function renderTeamTotals(rows){
   if(!TEAMS.length || !rows.length){ el.innerHTML = ''; return; }
   const scoreOf = {};
   rows.forEach(r => scoreOf[r['이름']] = Number(r['타수']));
+  const handiOf = n => { const a = avgOf(n); return a!=null ? Math.round((a-72)*10)/10 : 0; };
   const teams = TEAMS.map((t,i)=>{
     const entered = t.filter(n => scoreOf[n] != null);
-    return { no: i+1, members: t,
-      sum: entered.reduce((s,n)=>s+scoreOf[n],0),
-      cnt: entered.length, total: t.length,
-      detail: t.map(n => esc(n)+' <b>'+(scoreOf[n]!=null?scoreOf[n]:'-')+'</b>').join(' · ') };
-  }).sort((a,b)=> (b.cnt>0)-(a.cnt>0) || a.sum-b.sum || a.no-b.no);
+    const gross = entered.reduce((s,n)=>s+scoreOf[n],0);
+    const net = Math.round(entered.reduce((s,n)=>s+(scoreOf[n]-handiOf(n)),0)*10)/10;
+    return { no: i+1, members: t, gross, net, cnt: entered.length, total: t.length,
+      detail: t.map(n => {
+        if(scoreOf[n]==null) return esc(n)+' <b>-</b>';
+        return esc(n)+' <b>'+scoreOf[n]+'</b><span style="color:var(--ink-soft);font-size:11px"> (핸'+handiOf(n)+')</span>';
+      }).join(' · ') };
+  }).sort((a,b)=> (b.cnt>0)-(a.cnt>0) || a.net-b.net || a.no-b.no);
   const medal = ['🥇','🥈','🥉'];
-  el.innerHTML = '<div class="card"><h3>⛳ 조별 합계 (낮은 타수 순)</h3><div><table>'+
-    '<tr><th style="width:50px">순위</th><th style="white-space:nowrap">조</th><th class="num" style="white-space:nowrap">합계</th><th class="num" style="white-space:nowrap">입력</th><th>조원별 타수</th></tr>'+
+  const avgLabel = AVG_N>0 ? ('최근'+AVG_N+'회') : '전체';
+  el.innerHTML = '<div class="card"><h3>⛳ 조별 합계 (네트 낮은 순 · 핸디 '+avgLabel+' 평균기준)</h3><div><table>'+
+    '<tr><th style="width:50px">순위</th><th style="white-space:nowrap">조</th><th class="num" style="white-space:nowrap">그로스</th><th class="num" style="white-space:nowrap">네트</th><th class="num" style="white-space:nowrap">입력</th><th>조원별</th></tr>'+
     teams.map((t,i)=>
       '<tr><td class="rank-medal">'+(t.cnt?(medal[i]||(i+1)):'-')+'</td>'+
       '<td style="font-weight:800;white-space:nowrap">'+t.no+'조</td>'+
-      '<td class="num" style="font-weight:800;color:#5FE29B">'+(t.cnt?t.sum:'-')+'</td>'+
+      '<td class="num" style="font-weight:700">'+(t.cnt?t.gross:'-')+'</td>'+
+      '<td class="num" style="font-weight:800;color:#5FE29B">'+(t.cnt?t.net:'-')+'</td>'+
       '<td class="num">'+t.cnt+'/'+t.total+'</td>'+
       '<td style="white-space:nowrap;font-size:13px">'+t.detail+'</td></tr>'
     ).join('')+'</table></div></div>';
@@ -1176,6 +1193,7 @@ const isAdminRole = () => !!AUTH && (AUTH['직책']==='회장' || AUTH['직책']
 const canEditPost = p => !!AUTH && (isAdminRole() || AUTH['이름'] === p['작성자']);
 const POST_TYPES = ['일반', '모임후기', '정회원 요청', '건의/질문']; // 공지는 회장·총무 전용
 let BOARD_FILTER = '전체';
+let AVG_N = 0; // 평균타수 기준 회차(0=전체), 서버(구글시트)에 저장·공유됨
 
 function setBoardFilter(t){ BOARD_FILTER = t; renderBoard(); }
 
@@ -1328,6 +1346,14 @@ function delPost(id){
   call('deletePost', {ID:id}, d => { DATA.posts = d; renderBoard(); toast('삭제했습니다'); });
 }
 
+/* ---------- 공통: 기준 회차 평균 ---------- */
+function avgOf(name){
+  const vals = DATA.scores.filter(s=>s['이름']===name && s['집계']==='Y')
+    .sort((a,b)=> String(a['날짜'])<String(b['날짜'])?-1:1).map(s=>Number(s['타수']));
+  const use = (AVG_N>0) ? vals.slice(-AVG_N) : vals;
+  return use.length ? use.reduce((a,b)=>a+b,0)/use.length : null;
+}
+
 /* ---------- 마이페이지 ---------- */
 function sparkline(vals, w, h){
   if(vals.length < 2) return '';
@@ -1354,14 +1380,13 @@ function renderMypage(){
   const mine = DATA.scores.filter(s => s['이름']===name && s['집계']==='Y')
     .sort((a,b)=> String(a['날짜'])<String(b['날짜'])?-1:1);
   const vals = mine.map(s=>Number(s['타수']));
-  const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  const avg = avgOf(name); // 평균타수 탭에서 설정한 기준 회차 적용
   const best = vals.length ? Math.min(...vals) : null;
-  const recentAvg = vals.length ? (vals.slice(-5).reduce((a,b)=>a+b,0)/Math.min(5,vals.length)) : null;
+  const avgLabel = AVG_N>0 ? ('최근 '+AVG_N+'회') : '전체';
 
-  // 전체 순위 (전체 평균 기준)
-  const allAvg = {};
-  DATA.scores.forEach(s=>{ if(s['집계']==='Y'){ (allAvg[s['이름']]=allAvg[s['이름']]||[]).push(Number(s['타수'])); }});
-  const ranked = Object.keys(allAvg).map(n=>({n, a: allAvg[n].reduce((x,y)=>x+y,0)/allAvg[n].length})).sort((x,y)=>x.a-y.a);
+  // 순위 (기준 회차 평균)
+  const names = [...new Set(DATA.scores.filter(s=>s['집계']==='Y').map(s=>s['이름']))];
+  const ranked = names.map(n=>({n, a: avgOf(n)})).filter(r=>r.a!=null).sort((x,y)=>x.a-y.a);
   const myRank = ranked.findIndex(r=>r.n===name)+1;
 
   // 참석률(올해 모임 중 참가)
@@ -1372,10 +1397,10 @@ function renderMypage(){
   let html = '<div class="my-hero">'+
     '<h3>'+esc(name)+' <span class="role">'+(AUTH['직책']==='일반'?'회원':esc(AUTH['직책']))+'</span></h3>'+
     '<div class="my-stat-row">'+
-    '<div class="my-stat"><div class="v">'+(avg?avg.toFixed(1):'-')+'</div><div class="l">평균타수</div></div>'+
+    '<div class="my-stat"><div class="v">'+(avg?avg.toFixed(1):'-')+'</div><div class="l">평균타수('+avgLabel+')</div></div>'+
     '<div class="my-stat"><div class="v">'+(myRank||'-')+(myRank?'위':'')+'</div><div class="l">시즌 순위</div></div>'+
     '<div class="my-stat"><div class="v">'+(best||'-')+'</div><div class="l">베스트</div></div>'+
-    '<div class="my-stat"><div class="v">'+(avg?(avg-72>0?'+':'')+(avg-72).toFixed(1):'-')+'</div><div class="l">핸디캡</div></div>'+
+    '<div class="my-stat"><div class="v">'+vals.length+'</div><div class="l">이력 라운드</div></div>'+
     '</div></div>';
 
   // 타수 추이 그래프
@@ -1384,7 +1409,7 @@ function renderMypage(){
       '<div style="padding:16px">'+sparkline(vals, 300, 70)+
       '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:6px">'+
       '<span>'+shortDate(mine[0]['날짜'])+'</span>'+
-      '<span>최근5회 평균 '+(recentAvg?recentAvg.toFixed(1):'-')+'</span>'+
+      '<span>평균('+avgLabel+') '+(avg?avg.toFixed(1):'-')+'</span>'+
       '<span>'+shortDate(mine[mine.length-1]['날짜'])+'</span></div></div></div>';
   }
 
