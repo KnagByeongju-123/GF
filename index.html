@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 6.0</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 6.1</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -864,10 +864,13 @@ function renderMembers(){
   const el = document.getElementById('memberList');
   const admin = isAdmin();
   if(!DATA.members.length){ el.innerHTML = '<div class="empty">등록된 회원이 없습니다.</div>'; return; }
-  el.innerHTML = '<table><tr><th>이름</th>'+(admin?'<th style="width:110px">관리</th>':'')+'<th>연락처</th><th style="white-space:nowrap">가입일</th><th style="white-space:nowrap">주소</th><th style="white-space:nowrap">회사명</th><th style="white-space:nowrap">비고</th></tr>' +
+  el.innerHTML = '<table><tr><th>이름</th>'+((admin||AUTH)?'<th style="width:110px">관리</th>':'')+'<th>연락처</th><th style="white-space:nowrap">가입일</th><th style="white-space:nowrap">주소</th><th style="white-space:nowrap">회사명</th><th style="white-space:nowrap">비고</th></tr>' +
     DATA.members.map(m =>
       '<tr><td style="font-weight:700;white-space:nowrap">'+esc(m['이름'])+roleBadge(m['직책'])+'</td>'+
-      (admin ? '<td style="white-space:nowrap"><button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button><button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delMember('+m.ID+')">삭제</button></td>' : '')+
+      ((admin || (AUTH && AUTH['이름']===m['이름'])) ? '<td style="white-space:nowrap">'+
+        (admin ? '<button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button>' : '')+
+        '<button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delMember('+m.ID+',\''+esc(m['이름'])+'\')">탈퇴</button></td>'
+        : (admin ? '<td></td>' : ''))+
       '<td style="white-space:nowrap">'+esc(m['연락처'])+'</td>'+
       '<td style="white-space:nowrap">'+shortDate(m['가입일'])+'</td>'+
       '<td style="white-space:nowrap">'+esc(m['주소']||'')+'</td><td style="white-space:nowrap">'+esc(m['회사명']||'')+'</td>'+
@@ -1043,9 +1046,15 @@ function submitMember(){
   closeModal('mMember');
   call('saveMember', m, d => { DATA.members = d; renderAll(); toast('저장했습니다'); });
 }
-function delMember(id){
-  if(!confirm('이 회원을 삭제할까요?')) return;
-  call('deleteMember', {ID:id}, d => { DATA.members = d; renderAll(); toast('삭제했습니다'); });
+function delMember(id, name){
+  const isSelf = AUTH && AUTH['이름'] === name;
+  const msg = isSelf ? '정말 탈퇴하시겠어요? 탈퇴 후 로그아웃됩니다.' : (name||'이 회원')+'님을 탈퇴 처리할까요?';
+  if(!confirm(msg)) return;
+  call('deleteMember', {ID:id}, d => {
+    DATA.members = d;
+    if(isSelf){ logout(); toast('탈퇴 처리되었습니다'); }
+    else { renderAll(); toast('탈퇴 처리했습니다'); }
+  });
 }
 
 /* ---------- 모임 ---------- */
