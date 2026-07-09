@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 6.2</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 6.3</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -1061,6 +1061,17 @@ function openMember(id){
 function submitMember(){
   const name = document.getElementById('fmName').value.trim();
   if(!name){ alert('이름을 입력하세요.'); return; }
+  // 신규 등록인데 같은 이름의 탈퇴자가 있으면 복원 여부를 물음 (동명이인 대비)
+  if(!document.getElementById('fmId').value){
+    const retired = DATA.membersRetired.find(x => x['이름'] === name);
+    if(retired){
+      if(confirm('같은 이름의 탈퇴 회원이 있습니다 ('+name+', 탈퇴일 '+shortDate(retired['탈퇴일']||'')+').\n\n[확인] 기존 회원 복원 (이전 기록 유지)\n[취소] 동명이인 신규 등록 (기록 새로 시작)')){
+        restoreMember(retired.ID, name);
+        closeModal('mMember');
+        return;
+      }
+    }
+  }
   const m = { ID: document.getElementById('fmId').value || null,
     '이름': name, '연락처': document.getElementById('fmPhone').value,
     '가입일': document.getElementById('fmJoin').value, '비고': document.getElementById('fmNote').value,
