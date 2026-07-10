@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.0</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.1</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -922,8 +922,8 @@ function renderMembers(){
     DATA.members.map(m =>
       '<tr><td style="font-weight:700;white-space:nowrap'+(admin?';cursor:pointer':'')+'"'+(admin?' onclick="openMemCtl('+m.ID+')"':'')+'>'+esc(m['이름'])+(admin?' <span style="font-size:11px;color:var(--ink-soft)">▸</span>':'')+roleBadge(m['직책'])+statusBadge(m)+'</td>'+
       ((admin || (AUTH && AUTH['이름']===m['이름'])) ? '<td style="white-space:nowrap">'+
-        (admin ? '<button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button>' : '')+
-        '<button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delMember('+m.ID+',\''+esc(m['이름'])+'\')">탈퇴</button></td>'
+        (admin ? '<button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button>'
+               : '<button class="btn btn-sm btn-danger" onclick="delMember('+m.ID+',\''+esc(m['이름'])+'\')">탈퇴</button>')+'</td>'
         : (admin ? '<td></td>' : ''))+
       '<td style="white-space:nowrap">'+esc(m['연락처'])+'</td>'+
       '<td style="white-space:nowrap">'+shortDate(m['가입일'])+'</td>'+
