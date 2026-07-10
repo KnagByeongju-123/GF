@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 6.4</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.0</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -487,6 +487,35 @@ td.num,th.num{text-align:right}
     </div>
     <div style="max-height:64vh;overflow-y:auto" id="reportBody"></div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('mReport')">닫기</button></div>
+  </div>
+</div>
+
+<!-- 회원 관리 모달 (회장·총무) -->
+<div class="modal-bg" id="mMemCtl">
+  <div class="modal" style="max-width:420px">
+    <h3 id="mcName">회원 관리</h3>
+    <input type="hidden" id="mcId">
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">현재 상태: <b id="mcCurrent" style="color:#5FE29B"></b></p>
+    <div class="field"><label>상태 변경</label>
+      <div style="display:flex;gap:6px" id="mcStBtns">
+        <button type="button" class="ampm" data-st="" onclick="setMemStatus('')">정상</button>
+        <button type="button" class="ampm" data-st="휴회" onclick="setMemStatus('휴회')">휴회</button>
+        <button type="button" class="ampm" data-st="탈퇴" onclick="setMemStatus('탈퇴')">탈퇴</button>
+      </div>
+    </div>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button class="btn btn-ghost" onclick="openActivity(document.getElementById('mcName').dataset.name)">📋 활동내역</button>
+      <button class="btn btn-ghost" onclick="closeModal('mMemCtl')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 활동내역 모달 -->
+<div class="modal-bg" id="mActivity">
+  <div class="modal" style="max-width:640px">
+    <h3 id="actTitle">활동내역</h3>
+    <div id="actBody" style="max-height:66vh;overflow-y:auto"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('mActivity')">닫기</button></div>
   </div>
 </div>
 
@@ -718,7 +747,11 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'), 2200);
 }
 // Apps Script 웹앱 배포 URL (재배포로 URL이 바뀌면 여기만 수정)
-const API_URL = 'https://script.google.com/macros/s/AKfycbzk0wvy7l_A0Z2E1hRSmvMwFkN6LuRBCyFvkNa9ZvAXxPMlq56xlHI2V-yjUT-ixuEqUw/exec';
+// 데이터 API: Supabase (도쿄) — 콜드스타트 없음
+const SUPA_URL = 'https://jgvikmakenpllwxwdugk.supabase.co/rest/v1/rpc/gf_api';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpndmlrbWFrZW5wbGx3eHdkdWdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA3OTcsImV4cCI6MjA5MjYwNjc5N30.Vm-MDfZFf7-ay0ipXJQ8QkZvUa9ZXGXzboHgU8dy9cg';
+// 이미지 API: 기존 GAS (드라이브 업로드/프록시 전용)
+const IMG_API = 'https://script.google.com/macros/s/AKfycbzk0wvy7l_A0Z2E1hRSmvMwFkN6LuRBCyFvkNa9ZvAXxPMlq56xlHI2V-yjUT-ixuEqUw/exec';
 
 // ---- 날짜/시간 정규화 (백엔드가 ISO 원시값을 보내도 안전하게 표시) ----
 function fmtD(v){
@@ -749,16 +782,28 @@ function norm(d){
   return d;
 }
 
+function supaFetch(action, payload){
+  return fetch(SUPA_URL, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer '+SUPA_KEY },
+    body: JSON.stringify({ action, payload: payload || {}, auth: AUTH ? {'이름':AUTH['이름'],'PIN':AUTH['PIN']} : null })
+  }).then(r => r.json());
+}
 function call(action, payload, done){
   loading(true);
-  fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload, auth: AUTH ? {'이름':AUTH['이름'],'PIN':AUTH['PIN']} : null }) })
-    .then(r => r.json())
+  supaFetch(action, payload)
     .then(res => {
       loading(false);
       if(res.error){ alert('오류: ' + res.error); return; }
       done(norm(res.data));
     })
-    .catch(err => { loading(false); alert('연결 오류: ' + err.message + '\n(웹앱 배포 시 액세스 권한을 "모든 사용자"로 설정했는지 확인하세요)'); });
+    .catch(err => { loading(false); alert('연결 오류: ' + err.message); });
+}
+// 이미지 업로드/삭제 전용 (GAS → 구글드라이브)
+function imgCall(action, payload){
+  return fetch(IMG_API, { method:'POST', body: JSON.stringify({ action, payload }) })
+    .then(r => r.json())
+    .then(res => { if(res.error) throw new Error(res.error); return res.data; });
 }
 function loadAll(){
   call('getAll', null, d => {
@@ -860,6 +905,10 @@ function setAvgN(v){
   }
 }
 
+function statusBadge(m){
+  if(m['상태']==='휴회') return ' <span class="badge" style="background:#3A3320;color:#E8C878">휴회</span>';
+  return '';
+}
 function roleBadge(r){
   if(r==='회장') return ' <span class="badge" style="background:#3A2F17;color:#E4C378">회장</span>';
   if(r==='총무') return ' <span class="badge badge-in">총무</span>';
@@ -871,7 +920,7 @@ function renderMembers(){
   if(!DATA.members.length){ el.innerHTML = '<div class="empty">등록된 회원이 없습니다.</div>'; return; }
   el.innerHTML = '<table><tr><th>이름</th>'+((admin||AUTH)?'<th style="width:110px">관리</th>':'')+'<th>연락처</th><th style="white-space:nowrap">가입일</th><th style="white-space:nowrap">주소</th><th style="white-space:nowrap">회사명</th><th style="white-space:nowrap">비고</th></tr>' +
     DATA.members.map(m =>
-      '<tr><td style="font-weight:700;white-space:nowrap">'+esc(m['이름'])+roleBadge(m['직책'])+'</td>'+
+      '<tr><td style="font-weight:700;white-space:nowrap'+(admin?';cursor:pointer':'')+'"'+(admin?' onclick="openMemCtl('+m.ID+')"':'')+'>'+esc(m['이름'])+(admin?' <span style="font-size:11px;color:var(--ink-soft)">▸</span>':'')+roleBadge(m['직책'])+statusBadge(m)+'</td>'+
       ((admin || (AUTH && AUTH['이름']===m['이름'])) ? '<td style="white-space:nowrap">'+
         (admin ? '<button class="btn btn-sm btn-ghost" onclick="openMember('+m.ID+')">수정</button>' : '')+
         '<button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delMember('+m.ID+',\''+esc(m['이름'])+'\')">탈퇴</button></td>'
@@ -890,7 +939,7 @@ function renderMembers(){
       DATA.membersRetired.map(m =>
         '<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;'+
         'background:var(--card-soft);border:1px solid var(--line);border-radius:20px;padding:5px 6px 5px 12px">'+
-        esc(m['이름'])+' <small style="color:var(--ink-soft)">'+shortDate(m['탈퇴일']||'')+'</small>'+
+        '<span style="cursor:pointer" onclick="openMemCtl('+m.ID+')">'+esc(m['이름'])+' <small style="color:var(--ink-soft)">'+shortDate(m['탈퇴일']||'')+'</small></span>'+
         '<button class="btn btn-sm btn-ghost" onclick="restoreMember('+m.ID+',\''+esc(m['이름'])+'\')">복원</button></span>'
       ).join('')+'</div></div>';
   }
@@ -899,6 +948,91 @@ function renderMembers(){
 function restoreMember(id, name){
   if(!confirm(name+'님을 복원(재가입)할까요?')) return;
   call('restoreMember', {ID:id}, d => { splitMembers(d); renderAll(); toast(name+'님을 복원했습니다. PIN을 새로 설정해 주세요.'); });
+}
+
+/* ---------- 회원 관리 모달 (회장·총무) ---------- */
+function findMemberById(id){
+  return DATA.members.find(x=>x.ID==id) || DATA.membersRetired.find(x=>x.ID==id);
+}
+function openMemCtl(id){
+  if(!isAdmin()) return;
+  const m = findMemberById(id);
+  if(!m) return;
+  const st = m['상태'] || '';
+  document.getElementById('mcId').value = id;
+  const nameEl = document.getElementById('mcName');
+  nameEl.textContent = m['이름'] + ' 회원 관리';
+  nameEl.dataset.name = m['이름'];
+  document.getElementById('mcCurrent').textContent = st==='탈퇴' ? '탈퇴 ('+shortDate(m['탈퇴일']||'')+')' : (st==='휴회' ? '휴회' : '정상');
+  // 현재 상태 하이라이트, 탈퇴자는 [정상복귀/활동내역]만
+  document.querySelectorAll('#mcStBtns .ampm').forEach(b => {
+    b.classList.toggle('on', b.dataset.st === st);
+    b.textContent = (b.dataset.st==='' ? (st==='탈퇴' ? '정상 복귀' : '정상') : b.dataset.st);
+    b.style.display = (st==='탈퇴' && b.dataset.st!=='') ? 'none' : '';
+  });
+  openModal('mMemCtl');
+}
+function setMemStatus(st){
+  const id = document.getElementById('mcId').value;
+  const m = findMemberById(id);
+  if(!m || (m['상태']||'') === st) { closeModal('mMemCtl'); return; }
+  const label = st==='' ? '정상' : st;
+  if(st==='탈퇴' && !confirm(m['이름']+'님을 탈퇴 처리할까요?\n(기록은 보존되며 복원 가능합니다)')) return;
+  call('setMemberStatus', {ID:id, '상태':st}, d => {
+    splitMembers(d); renderAll(); closeModal('mMemCtl');
+    toast(m['이름']+'님을 '+label+' 처리했습니다');
+  });
+}
+
+/* ---------- 활동내역 (개인 전체 기록) ---------- */
+function openActivity(name){
+  if(!isAdmin() || !name) return;
+  closeModal('mMemCtl');
+  const m = DATA.members.find(x=>x['이름']===name) || DATA.membersRetired.find(x=>x['이름']===name) || {};
+  document.getElementById('actTitle').textContent = '📋 '+name+'님 활동내역';
+
+  const sc = DATA.scores.filter(x=>x['이름']===name).sort((a,b)=>String(a['날짜'])<String(b['날짜'])?1:-1);
+  const inc = sc.filter(x=>x['집계']==='Y').map(x=>Number(x['타수']));
+  const posts = DATA.posts.filter(x=>x['작성자']===name).sort((a,b)=>b.ID-a.ID);
+  const fees = DATA.fees.filter(x=>x['회원명']===name).sort((a,b)=>String(a['날짜'])<String(b['날짜'])?1:-1);
+  const evs = DATA.events.filter(e=>String(e['참가자']||'').split(',').map(x=>x.trim()).indexOf(name)>=0)
+    .sort((a,b)=>String(a['날짜'])<String(b['날짜'])?1:-1);
+  const recs = DATA.records.filter(r=>r['우승']===name || r['메달리스트']===name);
+
+  let html = '<div class="card" style="margin-bottom:12px"><div style="padding:12px 14px;font-size:13.5px;line-height:1.9">'+
+    '<b>회원정보</b> · 연락처 '+esc(m['연락처']||'-')+' · 가입일 '+shortDate(m['가입일']||'')+
+    ' · 직책 '+esc(m['직책']||'일반')+' · 상태 <b style="color:#5FE29B">'+(m['상태']||'정상')+'</b><br>'+
+    '주소 '+esc(m['주소']||'-')+' · 회사 '+esc(m['회사명']||'-')+(m['비고']?' · 비고 '+esc(m['비고']):'')+'</div></div>';
+
+  html += '<div class="card" style="margin-bottom:12px"><h3>⛳ 타수 이력 '+sc.length+'건'+
+    (inc.length?' · 평균 '+(inc.reduce((a,b)=>a+b,0)/inc.length).toFixed(1)+' · 베스트 '+Math.min(...inc):'')+'</h3><div>'+
+    (sc.length ? '<table><tr><th>날짜</th><th>골프장</th><th class="num">타수</th><th>상태</th></tr>'+
+      sc.map(x=>'<tr><td style="white-space:nowrap">'+shortDate(x['날짜'])+'</td><td style="white-space:nowrap">'+esc(x['골프장'])+'</td>'+
+        '<td class="num" style="font-weight:700">'+esc(x['타수'])+'</td><td>'+incBadge(x)+'</td></tr>').join('')+'</table>'
+      : '<div class="empty">기록 없음</div>')+'</div></div>';
+
+  html += '<div class="card" style="margin-bottom:12px"><h3>🏆 명예의 전당 '+recs.length+'건</h3><div>'+
+    (recs.length ? '<table>'+recs.map(r=>'<tr><td style="white-space:nowrap">'+esc(r['일자'])+'</td><td>'+esc(r['대회명'])+'</td>'+
+      '<td style="white-space:nowrap;font-weight:700;color:var(--gold)">'+(r['우승']===name?'우승':'메달리스트')+'</td></tr>').join('')+'</table>'
+      : '<div class="empty">수상 기록 없음</div>')+'</div></div>';
+
+  html += '<div class="card" style="margin-bottom:12px"><h3>📅 모임 참가 '+evs.length+'회</h3><div>'+
+    (evs.length ? '<table>'+evs.map(e=>'<tr><td style="white-space:nowrap">'+shortDate(e['날짜'])+'</td><td style="white-space:nowrap">'+esc(e['골프장'])+'</td><td>'+esc(e['종류']||'')+'</td></tr>').join('')+'</table>'
+      : '<div class="empty">참가 기록 없음</div>')+'</div></div>';
+
+  html += '<div class="card" style="margin-bottom:12px"><h3>💰 회비 기록 '+fees.length+'건</h3><div>'+
+    (fees.length ? '<table>'+fees.map(f=>'<tr><td style="white-space:nowrap">'+shortDate(f['날짜'])+'</td>'+
+      '<td><span class="badge badge-'+(f['구분']==='수입'?'in':'out')+'">'+esc(f['구분'])+'</span></td>'+
+      '<td style="white-space:nowrap">'+esc(f['내용'])+'</td><td class="num" style="font-weight:700">'+won(f['금액'])+'</td></tr>').join('')+'</table>'
+      : '<div class="empty">회비 기록 없음</div>')+'</div></div>';
+
+  html += '<div class="card"><h3>📝 게시글 '+posts.length+'건</h3><div>'+
+    (posts.length ? '<table>'+posts.map(p=>'<tr><td style="white-space:nowrap">'+shortDate(p['날짜'])+'</td>'+
+      '<td>'+esc(p['종류']||'일반')+'</td><td>'+esc(p['제목'])+'</td></tr>').join('')+'</table>'
+      : '<div class="empty">게시글 없음</div>')+'</div></div>';
+
+  document.getElementById('actBody').innerHTML = html;
+  openModal('mActivity');
 }
 
 function renderEvents(){
@@ -1152,7 +1286,7 @@ function openScore(){
   const sel = document.getElementById('fsEvent');
   sel.innerHTML = [...DATA.events].sort((a,b)=>a['날짜']<b['날짜']?1:-1)
     .map(e => '<option value="'+e.ID+'">'+e['날짜']+' · '+esc(e['골프장'])+'</option>').join('');
-  document.getElementById('fsRows').innerHTML = DATA.members.map(m =>
+  document.getElementById('fsRows').innerHTML = DATA.members.filter(m=>!m['상태']).map(m =>
     '<div class="score-row"><span>'+esc(m['이름'])+'</span>'+
     '<input type="number" min="50" max="150" placeholder="타수" data-id="'+m.ID+'" data-name="'+esc(m['이름'])+'"></div>'
   ).join('');
@@ -1218,7 +1352,8 @@ async function submitFee(){
       prog.textContent = '영수증 업로드 중... ('+(i+1)+'/'+files.length+')';
       const base64 = await compressImage(files[i], 30*1024); // 30KB 이하
       const name = '영수증_'+document.getElementById('ffDate').value+'_'+String(i+1).padStart(2,'0')+'.jpg';
-      fees = await callAsync('addReceipt', { feeId: saved.ID, '파일명': name, base64 });
+      const up = await imgCall('uploadImage', { kind:'receipt', '파일명': name, base64 });
+      fees = await callAsync('addReceipt', { feeId: saved.ID, fileId: up.fileId });
     }
     DATA.fees = fees;
     closeModal('mFee'); renderAll(); toast('저장했습니다');
@@ -1227,7 +1362,12 @@ async function submitFee(){
 }
 function delFee(id){
   if(!confirm('이 내역을 삭제할까요?')) return;
-  call('deleteFee', {ID:id}, d => { DATA.fees = d; renderAll(); toast('삭제했습니다'); });
+  const fee = DATA.fees.find(x=>x.ID==id);
+  const rcs = fee ? String(fee['영수증']||'') : '';
+  call('deleteFee', {ID:id}, d => {
+    DATA.fees = d; renderAll(); toast('삭제했습니다');
+    if(rcs) imgCall('deleteFiles', {fileIds: rcs}).catch(()=>{});
+  });
 }
 
 /* ---------- 게시판 ---------- */
@@ -1289,7 +1429,7 @@ async function loadProxyImages(rootSel){
     const id = el.getAttribute('data-img');
     el.removeAttribute('data-img');
     try{
-      const r = await fetch(API_URL + '?img=' + encodeURIComponent(id));
+      const r = await fetch(IMG_API + '?img=' + encodeURIComponent(id));
       const dataUrl = await r.text();
       if(dataUrl.startsWith('data:')) el.src = dataUrl;
     }catch(e){}
@@ -1348,8 +1488,7 @@ function compressImage(file, maxBytes){
 }
 
 function callAsync(action, payload){
-  return fetch(API_URL, { method:'POST', body: JSON.stringify({ action, payload, auth: AUTH ? {'이름':AUTH['이름'],'PIN':AUTH['PIN']} : null }) })
-    .then(r => r.json())
+  return supaFetch(action, payload)
     .then(res => { if(res.error) throw new Error(res.error); return norm(res.data); });
 }
 
@@ -1376,7 +1515,8 @@ async function submitPost(){
       prog.textContent = '사진 업로드 중... ('+(i+1)+'/'+files.length+')';
       const base64 = await compressImage(files[i], 50*1024);
       const name = today()+'_'+String(i+1).padStart(2,'0')+'_'+files[i].name.replace(/\.[^.]+$/,'')+'.jpg';
-      posts = await callAsync('addPhoto', { postId, '파일명': name, base64 });
+      const up = await imgCall('uploadImage', { kind:'photo', '파일명': name, base64 });
+      posts = await callAsync('addPhoto', { postId, fileId: up.fileId });
     }
     DATA.posts = posts;
     closeModal('mPost'); renderBoard(); toast('게시글을 등록했습니다');
@@ -1386,7 +1526,10 @@ async function submitPost(){
 
 function delPost(id){
   if(!confirm('이 게시글을 삭제할까요? (첨부 사진도 드라이브 휴지통으로 이동)')) return;
-  call('deletePost', {ID:id}, d => { DATA.posts = d; renderBoard(); toast('삭제했습니다'); });
+  call('deletePost', {ID:id}, d => {
+    DATA.posts = d.posts || d; renderBoard(); toast('삭제했습니다');
+    if(d.fileIds) imgCall('deleteFiles', {fileIds: d.fileIds}).catch(()=>{});
+  });
 }
 
 /* ---------- 공통: 기준 회차 평균 ---------- */
@@ -1547,7 +1690,7 @@ function renderTeamSetup(){
   const el = document.getElementById('tmMembers');
   if(!el) return;
   if(TEAMS.length){ renderTeams(); document.getElementById('tmCopyBtn').style.display=''; }
-  el.innerHTML = DATA.members.map(m =>
+  el.innerHTML = DATA.members.filter(m=>!m['상태']).map(m =>
     '<label><input type="checkbox" class="tm-ck" value="'+esc(m['이름'])+'" checked onchange="tmCount()"> '+esc(m['이름'])+'</label>'
   ).join('');
   tmCount();
