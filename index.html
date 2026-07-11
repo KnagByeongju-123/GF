@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.4</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.6</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -398,6 +398,13 @@ td.num,th.num{text-align:right}
         </span>
       </div>
       <div id="tmMembers" class="tm-members"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <label style="font-size:13.5px;font-weight:700">게스트</label>
+        <input id="tmGuestN" type="number" min="0" max="20" value="0" onchange="renderGuestInputs()"
+          style="width:64px;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:#121A15;color:var(--ink);text-align:center">
+        <span style="font-size:12.5px;color:var(--ink-soft)">명 — 수를 정하면 이름 입력란이 생깁니다</span>
+      </div>
+      <div id="tmGuests" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
         <label style="font-size:13.5px;font-weight:700">조 수</label>
         <input id="tmGroups" type="number" min="1" max="20" value="4" style="width:70px;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:#121A15;color:var(--ink);text-align:center">
@@ -1304,12 +1311,7 @@ function submitEvent(){
     '참가자': document.getElementById('fePlayers').value, '메모': document.getElementById('feMemo').value,
     '종류': document.getElementById('feType').value, '상품': document.getElementById('fePrize').value };
   closeModal('mEvent');
-  const isNewEvent = !e.ID;
-  call('saveEvent', e, d => {
-    DATA.events = d; renderAll(); toast('저장했습니다');
-    if(isNewEvent && setting('ntfyEvent')==='Y')
-      notifyNtfy('⛳ 새 모임: '+e['골프장'], shortDate(e['날짜'])+' '+fmtTee(e['티오프'])+' · '+(e['종류']||'월례회')+(e['상품']?'\n🎁 '+e['상품']:''));
-  });
+  call('saveEvent', e, d => { DATA.events = d; renderAll(); toast('저장했습니다'); }); // 새 모임 알림은 서버가 자동 발송
 }
 function delEvent(id){
   if(!confirm('이 모임을 삭제할까요?')) return;
@@ -1556,9 +1558,7 @@ async function submitPost(){
       posts = await callAsync('addPhoto', { postId, fileId: up.fileId });
     }
     DATA.posts = posts;
-    closeModal('mPost'); renderBoard(); toast('게시글을 등록했습니다');
-    if(!document.getElementById('fpId').value && setting('ntfyPost')==='Y')
-      notifyNtfy('📝 새 글: '+title, author+' · '+document.getElementById('fpType').value);
+    closeModal('mPost'); renderBoard(); toast('게시글을 등록했습니다'); // 새 글 알림은 서버가 자동 발송
   } catch(err){ alert('등록 오류: ' + err.message); }
   btn.disabled = false; prog.textContent = '';
 }
@@ -1738,13 +1738,6 @@ async function saveNtfySettings(){
   }catch(err){ alert('저장 오류: '+err.message); }
 }
 
-// ntfy 발송 (JSON publish — 한글 제목 지원)
-function notifyNtfy(title, message){
-  const topic = setting('ntfyTopic');
-  if(!topic) return;
-  fetch('https://ntfy.sh', { method:'POST',
-    body: JSON.stringify({ topic, title, message, tags:['golf'] }) }).catch(()=>{});
-}
 function testNtfy(){
   const topic = document.getElementById('setNtfyTopic').value.trim();
   if(!topic){ alert('토픽명을 먼저 입력하세요.'); return; }
@@ -1782,6 +1775,17 @@ function renderTeamSetup(){
   ).join('');
   tmCount();
 }
+function renderGuestInputs(){
+  const n = Math.max(0, Math.min(20, Number(document.getElementById('tmGuestN').value)||0));
+  const box = document.getElementById('tmGuests');
+  const prev = [...box.querySelectorAll('input')].map(i=>i.value); // 기존 입력 유지
+  let html = '';
+  for(let i=0;i<n;i++){
+    html += '<input class="tm-guest" placeholder="게스트'+(i+1)+' 이름" value="'+esc(prev[i]||'')+'"'+
+      ' style="font:inherit;padding:8px;border:1px solid var(--gold);border-radius:8px;background:#121A15;color:var(--ink)">';
+  }
+  box.innerHTML = html;
+}
 function tmAll(on){ document.querySelectorAll('.tm-ck').forEach(c=>c.checked=on); tmCount(); }
 function tmCount(){
   const n = document.querySelectorAll('.tm-ck:checked').length;
@@ -1790,6 +1794,11 @@ function tmCount(){
 
 function makeTeams(){
   const names = [...document.querySelectorAll('.tm-ck:checked')].map(c=>c.value);
+  // 게스트 합류 (이름 입력된 것만, 표시는 (G) 표기)
+  [...document.querySelectorAll('.tm-guest')].forEach(inp => {
+    const n = inp.value.trim();
+    if(n) names.push(n + '(G)');
+  });
   const g = Math.max(1, Math.min(20, Number(document.getElementById('tmGroups').value)||1));
   if(!names.length){ alert('참가자를 선택하세요.'); return; }
   // 셔플
