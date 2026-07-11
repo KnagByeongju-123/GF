@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.6</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.7</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -335,7 +335,7 @@ td.num,th.num{text-align:right}
       <span>
         <button class="btn btn-ghost" onclick="go('rank',document.querySelector('[data-tab=rank]'))">평균타수 보기</button>
         <button class="btn btn-primary admin-only" style="margin-left:6px" onclick="openScore()">＋ 타수 입력</button>
-        <button class="btn admin-only" style="margin-left:6px;background:linear-gradient(180deg,#E4C378,#C29A3F);color:#1B1508" onclick="includeScores()">이력남기기</button>
+        <button class="btn admin-only" style="margin-left:6px;background:linear-gradient(180deg,#E4C378,#C29A3F);color:#1B1508" onclick="includeScores()">업데이트</button>
       </span></div>
     <div class="card"><h3 id="scoreTitle">당회 기록</h3><div id="scoreList"></div></div>
     <div id="teamTotals" style="margin-top:14px"></div>
@@ -1121,7 +1121,7 @@ function renderScores(){
   const rows = DATA.scores.filter(s => s['집계'] !== 'Y') // 이력으로 넘어간 기록은 숨김
     .sort((a,b)=> String(a['날짜'])===String(b['날짜']) ? Number(a['타수'])-Number(b['타수']) : (String(a['날짜'])<String(b['날짜'])?1:-1));
   title.textContent = rows.length
-    ? '당회 기록 '+rows.length+'건 — 시합 종료 후 [이력남기기]를 누르면 평균타수에 반영됩니다'
+    ? '당회 기록 '+rows.length+'건 — 시합 종료 후 [업데이트]를 누르면 평균타수에 반영됩니다 (회장·총무)'
     : '당회 기록 — 진행 중인 시합 기록이 없습니다';
   if(!rows.length){ el.innerHTML = '<div class="empty">스코어 입력으로 이번 시합 기록을 시작하세요.<br>지난 이력은 평균타수 탭에서 이름을 클릭해 확인합니다.</div>'; return; }
   el.innerHTML = '<table><tr><th style="white-space:nowrap">날짜</th><th>이름</th><th style="white-space:nowrap">골프장</th><th class="num">타수</th>'+(isAdmin()?'<th></th>':'')+'</tr>' +
