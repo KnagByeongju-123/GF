@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.7</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.9</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -369,6 +369,7 @@ td.num,th.num{text-align:right}
       <div class="stat"><div class="label">총 지출</div><div class="value" id="feeOut" style="color:var(--flag)">-</div></div>
       <div class="stat"><div class="label">잔액</div><div class="value" id="feeBal">-</div></div>
     </div>
+    <div id="feeDues" style="margin-bottom:16px"></div>
     <div class="card"><div id="feeList"></div></div>
   </section>
 
@@ -1214,6 +1215,78 @@ function renderFees(){
       (admin ? '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm btn-ghost" onclick="openFee('+f.ID+')">수정</button> '+
       '<button class="btn btn-sm btn-danger" onclick="delFee('+f.ID+')">삭제</button></td>' : '')+'</tr>';
     }).join('') + '</table>';
+  renderFeeDues();
+}
+
+/* ---------- 연회비 납부/미납 현황 ---------- */
+function renderFeeDues(){
+  const el = document.getElementById('feeDues');
+  if(!el) return;
+  // 기준 연도: 데이터에 있는 연도 + 올해
+  const years = [...new Set(DATA.fees.map(f=>String(f['날짜']||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)).concat([String(new Date().getFullYear())]))].sort().reverse();
+  const sel = el.dataset.year && years.indexOf(el.dataset.year)>=0 ? el.dataset.year : years[0];
+  el.dataset.year = sel;
+  // 해당 연도에 '연회비' 항목으로 납부한 회원명
+  const paid = new Set(DATA.fees.filter(f =>
+    f['구분']==='수입' && String(f['날짜']||'').startsWith(sel) &&
+    String(f['내용']||'').indexOf('연회비') >= 0 && f['회원명']
+  ).map(f => String(f['회원명']).trim()));
+  const paidList = [], dueList = [];
+  DATA.members.forEach(m => (paid.has(m['이름']) ? paidList : dueList).push(m));
+  el.innerHTML = '<div class="card" style="padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+
+    '<b style="font-size:14.5px">💳 연회비 납부 현황</b>'+
+    '<select onchange="document.getElementById(\'feeDues\').dataset.year=this.value;renderFeeDues()" '+
+    'style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#121A15;color:var(--ink)">'+
+    years.map(y=>'<option'+(y===sel?' selected':'')+'>'+y+'</option>').join('')+'</select></div>'+
+    '<div style="font-size:13.5px;line-height:2">'+
+    '<div>✅ <b style="color:#5FE29B">납부 '+paidList.length+'명</b>'+
+    (paidList.length? ' · '+paidList.map(m=>esc(m['이름'])).join(', ') : '')+'</div>'+
+    '<div>❌ <b style="color:var(--flag)">미납 '+dueList.length+'명</b>'+
+    (dueList.length? ' · '+dueList.map(m=>'<span style="color:var(--flag);font-weight:700">'+esc(m['이름'])+(m['상태']==='휴회'?'(휴회)':'')+'</span>').join(', ') : ' — 전원 납부 완료 🎉')+'</div>'+
+    '</div>'+
+    '<p style="font-size:11.5px;color:var(--ink-soft);margin-top:8px">기준: 선택 연도의 수입 내역 중 내용에 "연회비"가 포함되고 회원명이 기재된 건</p>'+
+    '</div>'
+    + monthlyAttendCard(sel);
+}
+
+// 월례회 참석/미참석 현황 (참석 = 참가자 명단 포함 또는 당일 타수 기록 존재)
+function monthlyAttendCard(year){
+  const td = today();
+  const meetings = DATA.events.filter(e =>
+    (e['종류']||'월례회')==='월례회' && String(e['날짜']||'').startsWith(year) && String(e['날짜']) <= td);
+  if(!meetings.length){
+    return '<div class="card" style="padding:16px;margin-top:14px"><b style="font-size:14.5px">⛳ 월례회 참석 현황 ('+year+')</b>'+
+      '<div class="empty" style="padding:16px 0 4px">집계할 지난 월례회가 없습니다. (모임 일정에 등록된 월례회 기준)</div></div>';
+  }
+  const stat = {}; // 이름 → 참석수
+  DATA.members.forEach(m => stat[m['이름']] = 0);
+  meetings.forEach(ev => {
+    const present = new Set(String(ev['참가자']||'').split(',').map(x=>x.trim()).filter(Boolean));
+    DATA.scores.forEach(sc => { if(String(sc['날짜'])===String(ev['날짜'])) present.add(sc['이름']); });
+    present.forEach(n => { if(stat[n] != null) stat[n]++; });
+  });
+  const rows = DATA.members.map(m => {
+    const att = stat[m['이름']] || 0;
+    const miss = meetings.length - att;
+    return { name: m['이름'], status: m['상태']||'', att, miss, fine: miss*50000 };
+  }).sort((a,b)=> b.miss - a.miss || a.name.localeCompare(b.name,'ko'));
+  const missers = rows.filter(r=>r.miss>0);
+  return '<div class="card" style="padding:16px;margin-top:14px">'+
+    '<b style="font-size:14.5px">⛳ 월례회 참석 현황 ('+year+'년 · 지난 월례회 '+meetings.length+'회)</b>'+
+    '<div style="font-size:13.5px;line-height:2;margin-top:8px">'+
+    '<div>❌ <b style="color:var(--flag)">미참석자 '+missers.length+'명</b>'+
+    (missers.length? ' · '+missers.map(r=>'<span style="color:var(--flag);font-weight:700">'+esc(r.name)+'('+r.miss+'회)'+(r.status==='휴회'?'·휴회':'')+'</span>').join(', ') : ' — 전원 개근 🎉')+'</div></div>'+
+    '<div style="margin-top:10px;overflow-x:auto"><table>'+
+    '<tr><th>이름</th><th class="num">참석</th><th class="num">불참</th><th class="num" style="white-space:nowrap">찬조금(5만/회)</th></tr>'+
+    rows.map(r =>
+      '<tr><td style="white-space:nowrap;font-weight:700">'+esc(r.name)+(r.status==='휴회'?' <span class="badge" style="background:#3A3320;color:#E8C878">휴회</span>':'')+'</td>'+
+      '<td class="num">'+r.att+'</td>'+
+      '<td class="num" style="'+(r.miss?'color:var(--flag);font-weight:700':'')+'">'+r.miss+'</td>'+
+      '<td class="num">'+(r.fine? won(r.fine) : '-')+'</td></tr>'
+    ).join('')+'</table></div>'+
+    '<p style="font-size:11.5px;color:var(--ink-soft);margin-top:8px">참석 기준: 모임 참가자 명단 포함 또는 해당 날짜 타수 기록 존재 · 찬조금은 회칙 제17조(회당 50,000원)</p>'+
+    '</div>';
 }
 
 /* ---------- 회원 ---------- */
