@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.3</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.4</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -289,6 +289,7 @@ td.num,th.num{text-align:right}
     <button data-tab="records" onclick="go('records',this)">명예의 전당</button>
     <button data-tab="fees" onclick="go('fees',this)">회비</button>
     <button data-tab="rules" onclick="go('rules',this)">회칙</button>
+    <button data-tab="settings" onclick="go('settings',this)">설정</button>
   </nav>
   </div>
 </header>
@@ -413,6 +414,30 @@ td.num,th.num{text-align:right}
     <div class="page-head"><h2>회칙</h2>
       <button class="btn btn-primary admin-only" onclick="openRules()">회칙 수정</button></div>
     <div class="card" style="padding:18px"><div id="rulesView" class="rules-view"></div></div>
+  </section>
+  <!-- 설정 (회장·총무) -->
+  <section id="tab-settings" hidden>
+    <div class="page-head"><h2>⚙️ 설정</h2></div>
+    <div class="card" style="padding:18px;margin-bottom:14px">
+      <h3 style="padding:0 0 10px;border:none">🔔 ntfy 푸시 알림</h3>
+      <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:14px">
+        회원들은 폰에 <b>ntfy 앱</b>을 설치하고 아래 토픽을 구독하면, 새 모임·새 글 알림을 받습니다.<br>
+        토픽명은 비밀번호처럼 추측하기 어렵게 정하세요 (예: hoyoung-golf-x7k2).</p>
+      <div class="field"><label>ntfy 토픽명</label>
+        <input id="setNtfyTopic" placeholder="예: hoyoung-golf-x7k2"></div>
+      <div class="field"><label>알림 보낼 항목</label>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:14px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="setNtfyEvent" style="accent-color:#2BAF67"> 모임 일정 등록</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="setNtfyPost" style="accent-color:#2BAF67"> 게시판 새 글</label>
+        </div></div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="saveNtfySettings()">저장</button>
+        <button class="btn btn-ghost" onclick="testNtfy()">테스트 발송</button>
+      </div>
+      <div id="ntfyGuide" style="margin-top:16px;font-size:13px;color:var(--ink-soft);line-height:1.8"></div>
+    </div>
   </section>
 </main>
 
@@ -686,6 +711,7 @@ function updateGate(){
 }
 function updateTabs(){
   document.querySelectorAll('nav button').forEach(b => {
+    if(b.dataset.tab === 'settings'){ b.style.display = isAdmin() ? '' : 'none'; return; }
     b.style.display = (AUTH || GUEST_TABS.indexOf(b.dataset.tab) >= 0) ? '' : 'none';
   });
   if(!AUTH){
@@ -842,7 +868,7 @@ const fmtTee = v => {
   return ap + ' ' + h + ':' + m[2];
 };
 
-function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderBoard(); renderRules(); renderRecords(); renderTeamSetup(); renderMypage(); }
+function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScores(); renderFees(); renderBoard(); renderRules(); renderRecords(); renderTeamSetup(); renderMypage(); renderSettings(); }
 
 function renderDash(){
   document.getElementById('stMembers').innerHTML = DATA.members.length + '<small> 명</small>';
@@ -1278,7 +1304,12 @@ function submitEvent(){
     '참가자': document.getElementById('fePlayers').value, '메모': document.getElementById('feMemo').value,
     '종류': document.getElementById('feType').value, '상품': document.getElementById('fePrize').value };
   closeModal('mEvent');
-  call('saveEvent', e, d => { DATA.events = d; renderAll(); toast('저장했습니다'); });
+  const isNewEvent = !e.ID;
+  call('saveEvent', e, d => {
+    DATA.events = d; renderAll(); toast('저장했습니다');
+    if(isNewEvent && setting('ntfyEvent')==='Y')
+      notifyNtfy('⛳ 새 모임: '+e['골프장'], shortDate(e['날짜'])+' '+fmtTee(e['티오프'])+' · '+(e['종류']||'월례회')+(e['상품']?'\n🎁 '+e['상품']:''));
+  });
 }
 function delEvent(id){
   if(!confirm('이 모임을 삭제할까요?')) return;
@@ -1526,6 +1557,8 @@ async function submitPost(){
     }
     DATA.posts = posts;
     closeModal('mPost'); renderBoard(); toast('게시글을 등록했습니다');
+    if(!document.getElementById('fpId').value && setting('ntfyPost')==='Y')
+      notifyNtfy('📝 새 글: '+title, author+' · '+document.getElementById('fpType').value);
   } catch(err){ alert('등록 오류: ' + err.message); }
   btn.disabled = false; prog.textContent = '';
 }
@@ -1671,6 +1704,54 @@ function submitRecord(){
 function delRecord(id){
   if(!confirm('이 기록을 삭제할까요?')) return;
   call('deleteRecord', {ID:id}, d => { DATA.records = d; renderRecords(); toast('삭제했습니다'); });
+}
+
+/* ---------- 설정 · ntfy 알림 ---------- */
+function setting(k){ return (DATA.settings && DATA.settings[k]) || ''; }
+
+function renderSettings(){
+  const el = document.getElementById('setNtfyTopic');
+  if(!el) return;
+  el.value = setting('ntfyTopic');
+  document.getElementById('setNtfyEvent').checked = setting('ntfyEvent') === 'Y';
+  document.getElementById('setNtfyPost').checked = setting('ntfyPost') === 'Y';
+  const topic = setting('ntfyTopic');
+  document.getElementById('ntfyGuide').innerHTML = topic
+    ? '<b>회원 구독 방법</b><br>1. 플레이스토어/앱스토어에서 <b>ntfy</b> 설치<br>'+
+      '2. 앱에서 ➕ 구독 → 토픽명 <b style="color:#5FE29B">'+esc(topic)+'</b> 입력<br>'+
+      '3. 끝. 이후 새 모임·새 글이 등록되면 푸시가 옵니다.<br>'+
+      '웹 구독 주소: https://ntfy.sh/'+esc(topic)
+    : '토픽명을 저장하면 회원 구독 안내가 여기에 표시됩니다.';
+}
+
+async function saveNtfySettings(){
+  const topic = document.getElementById('setNtfyTopic').value.trim().replace(/[^\w-]/g,'');
+  try{
+    await callAsync('saveSetting', {key:'ntfyTopic', value: topic});
+    await callAsync('saveSetting', {key:'ntfyEvent', value: document.getElementById('setNtfyEvent').checked ? 'Y':''});
+    await callAsync('saveSetting', {key:'ntfyPost', value: document.getElementById('setNtfyPost').checked ? 'Y':''});
+    DATA.settings = DATA.settings || {};
+    DATA.settings.ntfyTopic = topic;
+    DATA.settings.ntfyEvent = document.getElementById('setNtfyEvent').checked ? 'Y':'';
+    DATA.settings.ntfyPost = document.getElementById('setNtfyPost').checked ? 'Y':'';
+    renderSettings(); toast('알림 설정을 저장했습니다');
+  }catch(err){ alert('저장 오류: '+err.message); }
+}
+
+// ntfy 발송 (JSON publish — 한글 제목 지원)
+function notifyNtfy(title, message){
+  const topic = setting('ntfyTopic');
+  if(!topic) return;
+  fetch('https://ntfy.sh', { method:'POST',
+    body: JSON.stringify({ topic, title, message, tags:['golf'] }) }).catch(()=>{});
+}
+function testNtfy(){
+  const topic = document.getElementById('setNtfyTopic').value.trim();
+  if(!topic){ alert('토픽명을 먼저 입력하세요.'); return; }
+  fetch('https://ntfy.sh', { method:'POST',
+    body: JSON.stringify({ topic, title:'호영회 알림 테스트', message:'이 알림이 보이면 설정 완료입니다 ⛳', tags:['golf'] }) })
+    .then(()=>toast('테스트 알림을 보냈습니다. ntfy 앱을 확인하세요'))
+    .catch(err=>alert('발송 오류: '+err.message));
 }
 
 /* ---------- 회칙 ---------- */
