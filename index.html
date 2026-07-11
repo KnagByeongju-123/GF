@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.1</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 7.2</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -846,7 +846,12 @@ function renderAll(){ renderDash(); renderMembers(); renderEvents(); renderScore
 
 function renderDash(){
   document.getElementById('stMembers').innerHTML = DATA.members.length + '<small> 명</small>';
-  const upcoming = DATA.events.filter(e => e['날짜'] >= today()).sort((a,b)=>a['날짜']<b['날짜']?-1:1);
+  const td = today();
+  const dnorm = e => { // YYYY-M-D 등도 YYYY-MM-DD로 정규화
+    const m = String(e['날짜']||'').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+    return m ? m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0') : String(e['날짜']||'');
+  };
+  const upcoming = DATA.events.filter(e => dnorm(e) >= td).sort((a,b)=>dnorm(a)<dnorm(b)?-1:1);
   document.getElementById('stNext').textContent = upcoming.length
     ? shortDate(upcoming[0]['날짜']) + ' ' + upcoming[0]['골프장'] : '예정 없음';
   const bal = DATA.fees.reduce((s,f)=> s + (f['구분']==='수입'?1:-1)*Number(f['금액']||0), 0);
