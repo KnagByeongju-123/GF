@@ -274,7 +274,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 8.0</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 8.2</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -1209,7 +1209,7 @@ function renderFees(){
   el.innerHTML = '<table><tr><th>날짜</th><th>구분</th><th>내용</th><th class="num">금액</th><th>회원명</th><th style="white-space:nowrap">영수증</th>'+(admin?'<th style="width:120px"></th>':'')+'</tr>' +
     sorted.map(f => {
       const rcs = String(f['영수증']||'').split(',').filter(Boolean);
-      return '<tr><td style="white-space:nowrap">'+shortDate(f['날짜'])+'</td><td><span class="badge badge-'+(f['구분']==='수입'?'in':'out')+'">'+esc(f['구분'])+'</span></td>'+
+      return '<tr><td style="white-space:nowrap">'+shortDate(f['날짜'])+'</td><td><span class="badge badge-'+(f['구분']==='수입'?'in':'out')+'">'+(f['구분']==='수입'?'입':'출')+'</span></td>'+
       '<td style="white-space:nowrap">'+esc(f['내용'])+'</td><td class="num" style="font-weight:700">'+won(f['금액'])+'</td><td style="white-space:nowrap">'+esc(f['회원명'])+'</td>'+
       '<td style="white-space:nowrap">'+(rcs.length?'<button class="btn btn-sm btn-ghost" onclick="viewReceipts('+f.ID+')">📎 '+rcs.length+'장</button>':'-')+'</td>'+
       (admin ? '<td style="text-align:right;white-space:nowrap"><button class="btn btn-sm btn-ghost" onclick="openFee('+f.ID+')">수정</button> '+
@@ -1223,12 +1223,13 @@ function renderFeeDues(){
   const el = document.getElementById('feeDues');
   if(!el) return;
   // 기준 연도: 데이터에 있는 연도 + 올해
-  const years = [...new Set(DATA.fees.map(f=>String(f['날짜']||'').slice(0,4)).filter(y=>/^\d{4}$/.test(y)).concat([String(new Date().getFullYear())]))].sort().reverse();
+  const curFy = fiscalOf(today());
+  const years = [...new Set(DATA.fees.map(feeYear).filter(y=>/^\d{4}$/.test(y)).concat([curFy]))].sort().reverse();
   const sel = el.dataset.year && years.indexOf(el.dataset.year)>=0 ? el.dataset.year : years[0];
   el.dataset.year = sel;
   // 해당 연도에 '연회비' 항목으로 납부한 회원명
   const paid = new Set(DATA.fees.filter(f =>
-    f['구분']==='수입' && String(f['날짜']||'').startsWith(sel) &&
+    f['구분']==='수입' && inFiscal(f['날짜'], sel) &&
     String(f['내용']||'').indexOf('연회비') >= 0 && f['회원명']
   ).map(f => String(f['회원명']).trim()));
   const paidList = [], dueList = [];
@@ -1238,14 +1239,14 @@ function renderFeeDues(){
     '<b style="font-size:14.5px">💳 연회비 납부 현황</b>'+
     '<select onchange="document.getElementById(\'feeDues\').dataset.year=this.value;renderFeeDues()" '+
     'style="font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#121A15;color:var(--ink)">'+
-    years.map(y=>'<option'+(y===sel?' selected':'')+'>'+y+'</option>').join('')+'</select></div>'+
+    years.map(y=>'<option value="'+y+'"'+(y===sel?' selected':'')+'>'+fyLabel(y)+'</option>').join('')+'</select></div>'+
     '<div style="font-size:13.5px;line-height:2">'+
     '<div>✅ <b style="color:#5FE29B">납부 '+paidList.length+'명</b>'+
     (paidList.length? ' · '+paidList.map(m=>esc(m['이름'])).join(', ') : '')+'</div>'+
     '<div>❌ <b style="color:var(--flag)">미납 '+dueList.length+'명</b>'+
     (dueList.length? ' · '+dueList.map(m=>'<span style="color:var(--flag);font-weight:700">'+esc(m['이름'])+(m['상태']==='휴회'?'(휴회)':'')+'</span>').join(', ') : ' — 전원 납부 완료 🎉')+'</div>'+
     '</div>'+
-    '<p style="font-size:11.5px;color:var(--ink-soft);margin-top:8px">기준: 선택 연도의 수입 내역 중 내용에 "연회비"가 포함되고 회원명이 기재된 건</p>'+
+    '<p style="font-size:11.5px;color:var(--ink-soft);margin-top:8px">기준: 선택 회기(7월~익년 6월)의 수입 중 내용에 "연회비" 포함 + 회원명 기재 (회칙 제15조 회계연도)</p>'+
     '</div>'
     + monthlyAttendCard(sel);
 }
@@ -1254,7 +1255,7 @@ function renderFeeDues(){
 function monthlyAttendCard(year){
   const td = today();
   const meetings = DATA.events.filter(e =>
-    (e['종류']||'월례회')==='월례회' && String(e['날짜']||'').startsWith(year) && String(e['날짜']) <= td);
+    (e['종류']||'월례회')==='월례회' && inFiscal(e['날짜'], year) && String(e['날짜']) <= td);
   if(!meetings.length){
     return '<div class="card" style="padding:16px;margin-top:14px"><b style="font-size:14.5px">⛳ 월례회 참석 현황 ('+year+')</b>'+
       '<div class="empty" style="padding:16px 0 4px">집계할 지난 월례회가 없습니다. (모임 일정에 등록된 월례회 기준)</div></div>';
@@ -1269,7 +1270,7 @@ function monthlyAttendCard(year){
   // 찬조금 납부액: 해당 연도 수입 중 내용에 '찬조'가 포함되고 회원명이 있는 건
   const finePaid = {};
   DATA.fees.forEach(f => {
-    if(f['구분']==='수입' && String(f['날짜']||'').startsWith(year) &&
+    if(f['구분']==='수입' && inFiscal(f['날짜'], year) &&
        String(f['내용']||'').indexOf('찬조') >= 0 && f['회원명']){
       const n = String(f['회원명']).trim();
       finePaid[n] = (finePaid[n]||0) + Number(f['금액']||0);
@@ -1954,14 +1955,21 @@ function viewReceipts(feeId){
   loadProxyImages('#receiptImgs');
 }
 
-/* ---------- 회비 연간 결산 ---------- */
-function feeYear(f){ return String(f['날짜']||'').slice(0,4); }
+/* ---------- 회비 연간 결산 (회계연도: 7월~익년 6월, 회칙 제15조) ---------- */
+function fiscalOf(dateStr){ // 날짜 → 회기연도 (7월 이후면 그 해, 6월 이전이면 전년)
+  const m = String(dateStr||'').match(/^(\d{4})-(\d{2})/);
+  if(!m) return '';
+  return Number(m[2]) >= 7 ? m[1] : String(Number(m[1])-1);
+}
+function feeYear(f){ return fiscalOf(f['날짜']); }
+function fyLabel(fy){ return fy+'회기 ('+String(fy).slice(2)+'.07~'+String(Number(fy)+1).slice(2)+'.06)'; }
+function inFiscal(dateStr, fy){ return fiscalOf(dateStr) === String(fy); }
 
 function openReport(){
   const years = [...new Set(DATA.fees.map(feeYear).filter(y=>/^\d{4}$/.test(y)))].sort().reverse();
   const sel = document.getElementById('rpYear');
   if(!years.length){ alert('회비 내역이 없습니다.'); return; }
-  sel.innerHTML = years.map(y=>'<option>'+y+'</option>').join('');
+  sel.innerHTML = years.map(y=>'<option value="'+y+'">'+fyLabel(y)+'</option>').join('');
   renderReport();
   openModal('mReport');
 }
@@ -1992,13 +2000,13 @@ function reportData(){
 function renderReport(){
   const d = reportData();
   let html = '<div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:14px">'+
-    '<div class="stat"><div class="label">기초 잔액 (전년 이월)</div><div class="value" style="font-size:19px">'+won(d.before)+'<small> 원</small></div></div>'+
+    '<div class="stat"><div class="label">기초 잔액 (전기 이월)</div><div class="value" style="font-size:19px">'+won(d.before)+'<small> 원</small></div></div>'+
     '<div class="stat"><div class="label">기말 잔액</div><div class="value" style="font-size:19px">'+won(d.before+d.inSum-d.outSum)+'<small> 원</small></div></div>'+
-    '<div class="stat"><div class="label">'+d.year+'년 총수입</div><div class="value" style="font-size:19px;color:#5FE29B">'+won(d.inSum)+'<small> 원</small></div></div>'+
-    '<div class="stat"><div class="label">'+d.year+'년 총지출</div><div class="value" style="font-size:19px;color:var(--flag)">'+won(d.outSum)+'<small> 원</small></div></div>'+
+    '<div class="stat"><div class="label">'+d.year+'회기 총수입</div><div class="value" style="font-size:19px;color:#5FE29B">'+won(d.inSum)+'<small> 원</small></div></div>'+
+    '<div class="stat"><div class="label">'+d.year+'회기 총지출</div><div class="value" style="font-size:19px;color:var(--flag)">'+won(d.outSum)+'<small> 원</small></div></div>'+
     '</div>';
 
-  const mkeys = Object.keys(d.months).sort();
+  const mkeys = Object.keys(d.months).sort((a,b)=>((Number(a)+5)%12)-((Number(b)+5)%12)); // 7월~익년6월 순
   if(mkeys.length){
     html += '<div class="card" style="margin-bottom:14px"><h3>월별 집계</h3><div><table>'+
       '<tr><th>월</th><th class="num">수입</th><th class="num">지출</th><th class="num">수지</th></tr>'+
@@ -2023,10 +2031,10 @@ function renderReport(){
 
 function copyReport(){
   const d = reportData();
-  let text = '[호영회 '+d.year+'년 회비 결산]\n'+
+  let text = '[호영회 '+fyLabel(d.year)+' 회비 결산]\n'+
     '기초잔액 '+won(d.before)+'원\n총수입 '+won(d.inSum)+'원 / 총지출 '+won(d.outSum)+'원\n'+
     '기말잔액 '+won(d.before+d.inSum-d.outSum)+'원\n';
-  const mkeys = Object.keys(d.months).sort();
+  const mkeys = Object.keys(d.months).sort((a,b)=>((Number(a)+5)%12)-((Number(b)+5)%12)); // 7월~익년6월 순
   if(mkeys.length){
     text += '--- 월별 ---\n' + mkeys.map(m =>
       Number(m)+'월: 수입 '+won(d.months[m].in)+' / 지출 '+won(d.months[m].out)).join('\n') + '\n';
