@@ -281,7 +281,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 8.9</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 9.0</span></h1>
     <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
@@ -991,9 +991,10 @@ function statusBadge(m){
   return '';
 }
 function roleBadge(r){
-  if(r==='회장') return ' <span class="badge" style="background:#3A2F17;color:#E4C378">회장</span>';
-  if(r==='총무') return ' <span class="badge badge-in">총무</span>';
-  return '';
+  if(!r || r==='일반') return '';
+  // 마스터 직책은 골드, 그 외(일반 제외)는 그린 배지
+  const gold = MASTER_ROLES.includes(r);
+  return ' <span class="badge" style="'+(gold?'background:#3A2F17;color:#E4C378':'background:#173A2A;color:#7FE3B0')+'">'+esc(r)+'</span>';
 }
 function renderMembers(){
   const el = document.getElementById('memberList');
@@ -1563,7 +1564,7 @@ function delFee(id){
 
 /* ---------- 게시판 ---------- */
 function postFiles(p){ return String(p['파일ID목록']||'').split(',').filter(Boolean); }
-const isAdminRole = () => !!AUTH && (AUTH['직책']==='회장' || AUTH['직책']==='총무');
+const isAdminRole = () => !!AUTH && MASTER_ROLES.includes(AUTH['직책']);
 const canEditPost = p => !!AUTH && (isAdminRole() || AUTH['이름'] === p['작성자']);
 const POST_TYPES = ['일반', '모임후기', '정회원 요청', '건의/질문']; // 공지는 운영진 전용
 let BOARD_FILTER = '전체';
