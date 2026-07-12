@@ -24,10 +24,10 @@ body{font-family:'Pretendard',-apple-system,sans-serif;color:var(--ink);font-siz
   background-attachment:fixed;min-height:100vh}
 
 /* ---------- 상단 ---------- */
-header{position:sticky;top:0;z-index:80;overflow:hidden;
+header{position:relative;overflow:hidden;
   background:linear-gradient(120deg, #03100A, #0C2C1C, #123D28, #0A2418, #03100A);
   background-size:300% 300%;animation:hdrFlow 5s ease infinite;
-  color:#fff;padding:9px 20px;border-bottom:2px solid var(--accent-deep);
+  color:#fff;padding:20px 24px 16px;border-bottom:2px solid var(--accent-deep);
   box-shadow:0 2px 14px rgba(14,36,26,.25)}
 @keyframes hdrFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 @media(prefers-reduced-motion:reduce){header{animation:none;background-position:0% 50%}}
@@ -35,12 +35,12 @@ header::before{content:'';position:absolute;inset:0;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='240' viewBox='0 0 700 240'%3E%3Cg fill='none' stroke-width='1.5'%3E%3Cpath d='M0 150 Q170 95 340 145 T700 128' stroke='%23ffffff' stroke-opacity='.07'/%3E%3Cpath d='M0 180 Q180 128 350 175 T700 160' stroke='%23E8B14B' stroke-opacity='.13'/%3E%3Cpath d='M0 210 Q190 165 360 205 T700 195' stroke='%23ffffff' stroke-opacity='.05'/%3E%3C/g%3E%3Cpath d='M600 78 V30 l30 9 -30 9' fill='%23E8B14B' fill-opacity='.30'/%3E%3Ccircle cx='600' cy='82' r='3.5' fill='%23E8B14B' fill-opacity='.45'/%3E%3C/svg%3E");
   background-repeat:repeat-x;background-position:bottom right;background-size:700px 240px}
 header>*{position:relative;z-index:1}
-.hwrap{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:14px}
+.hwrap{max-width:1080px;margin:0 auto}
 .hdr-video{position:absolute;inset:0;width:100%;height:100%;z-index:0;
   opacity:.32;mix-blend-mode:screen;pointer-events:none;object-fit:cover}
 @media(max-width:600px){.hdr-video{opacity:.24}}
-.brand{display:flex;align-items:baseline;gap:10px;flex:0 0 auto;white-space:nowrap}
-#authArea{font-size:13px;color:#C9DCCF;flex:0 0 auto;white-space:nowrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+#authArea{font-size:13px;color:#C9DCCF}
 #authArea b{color:#E8B14B}
 #authArea button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;
   font:inherit;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:20px;cursor:pointer;margin-left:8px}
@@ -52,18 +52,14 @@ header>*{position:relative;z-index:1}
   padding:2px 10px;border-radius:20px;vertical-align:3px;
   box-shadow:0 1px 4px rgba(196,154,63,.4)}
 .brand h1 .flag{color:#E8B14B}
-.single-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.02em;
-  color:#0B1F15;background:linear-gradient(180deg,#E4C378,#C29A3F);
-  padding:1px 7px;border-radius:10px;margin-left:5px;vertical-align:1px;
-  box-shadow:0 1px 3px rgba(196,154,63,.4)}
 .brand .sub{font-size:12.5px;color:#9DB8A6}
-nav{display:inline-flex;gap:4px;flex:1;min-width:0;overflow-x:auto;
+nav{display:inline-flex;gap:4px;max-width:100%;overflow-x:auto;
   scrollbar-width:none;-ms-overflow-style:none;
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
   border-radius:30px;padding:5px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 nav::-webkit-scrollbar{display:none}
-nav button{background:none;border:none;color:#C3D6C9;font:inherit;font-size:13.5px;font-weight:700;
-  padding:7px 14px;cursor:pointer;border-radius:24px;white-space:nowrap;transition:background .15s,color .15s}
+nav button{background:none;border:none;color:#C3D6C9;font:inherit;font-size:14px;font-weight:700;
+  padding:9px 17px;cursor:pointer;border-radius:24px;white-space:nowrap;transition:background .15s,color .15s}
 nav button.on{background:linear-gradient(180deg,#3DDC84,#2BAF67);color:#07130C;
   box-shadow:0 2px 8px rgba(61,220,132,.35)}
 nav button:hover:not(.on){color:#fff;background:rgba(255,255,255,.10)}
@@ -229,16 +225,14 @@ td.num,th.num{text-align:right}
 /* ===== 모바일 최적화 ===== */
 @media(max-width:600px){
   body{font-size:14px}
-  header{padding:7px 8px}
-  .hwrap{gap:8px}
-  .brand h1{font-size:15.5px}
-  .brand .cc{font-size:10px;padding:1px 7px}
-  .brand .rev{display:none}
-  #authArea{font-size:11px}
-  #authArea button{font-size:11px;padding:4px 8px;margin-left:4px}
+  header{padding:14px 14px 12px}
+  .brand h1{font-size:18px}
+  .brand .cc{font-size:11px;padding:2px 8px}
+  .brand .rev{font-size:10px}
+  #authArea{font-size:12px;margin-left:0;width:100%;margin-top:8px}
   main{padding:16px 12px 48px}
-  nav{border-radius:14px;padding:3px}
-  nav button{padding:7px 10px;font-size:12.5px}
+  nav{width:100%;border-radius:14px;padding:4px}
+  nav button{padding:8px 12px;font-size:13px;flex:1;text-align:center}
   .page-head h2{font-size:16px}
   .page-head{margin-bottom:12px}
   .btn{padding:8px 13px;font-size:13px}
@@ -280,7 +274,8 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 8.8</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="cc">정산CC</span> <span class="rev">Rev. 8.5</span></h1>
+    <span style="margin-left:auto" id="authArea"></span>
   </div>
   <nav>
     <button class="on" data-tab="dash" onclick="go('dash',this)">대시보드</button>
@@ -296,7 +291,6 @@ td.num,th.num{text-align:right}
     <button data-tab="rules" onclick="go('rules',this)">회칙</button>
     <button data-tab="settings" onclick="go('settings',this)">설정</button>
   </nav>
-  <span id="authArea"></span>
   </div>
 </header>
 
@@ -441,9 +435,9 @@ td.num,th.num{text-align:right}
         <input id="setNtfyTopic" placeholder="예: hoyoung-golf-x7k2"></div>
       <div class="field"><label>알림 보낼 항목</label>
         <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:14px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input type="checkbox" id="setNtfyEvent" style="accent-color:#2BAF67"> 모임 일정 등록</label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
             <input type="checkbox" id="setNtfyPost" style="accent-color:#2BAF67"> 게시판 새 글</label>
         </div></div>
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
@@ -1131,8 +1125,6 @@ function scoreRowActions(s){
     '<button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="delScore('+s.ID+')">삭제</button></td>';
 }
 
-// 81타 이하(싱글) 기록에 골드 배지 표시
-function scoreBadge(v){ const n = Number(v); return (n && n <= 81) ? ' <span class="single-badge">싱글</span>' : ''; }
 function renderScores(){
   renderRank();
   const el = document.getElementById('scoreList');
@@ -1146,7 +1138,7 @@ function renderScores(){
   el.innerHTML = '<table><tr><th style="white-space:nowrap">날짜</th><th>이름</th><th style="white-space:nowrap">골프장</th><th class="num">타수</th>'+(isAdmin()?'<th></th>':'')+'</tr>' +
     rows.map(s =>
       '<tr><td style="white-space:nowrap">'+shortDate(s['날짜'])+'</td><td style="font-weight:700;white-space:nowrap">'+esc(s['이름'])+'</td><td style="white-space:nowrap">'+esc(s['골프장'])+'</td>'+
-      '<td class="num" style="font-weight:700;white-space:nowrap">'+esc(s['타수'])+scoreBadge(s['타수'])+'</td>'+ scoreRowActions(s) +'</tr>'
+      '<td class="num" style="font-weight:700">'+esc(s['타수'])+'</td>'+ scoreRowActions(s) +'</tr>'
     ).join('') + '</table>';
   renderTeamTotals(rows);
 }
@@ -1195,7 +1187,7 @@ function openHistory(name){
     '<table><tr><th style="white-space:nowrap">날짜</th><th style="white-space:nowrap">골프장</th><th class="num">타수</th><th>포함</th>'+(isAdmin()?'<th></th>':'')+'</tr>' +
     rows.map(s =>
       '<tr><td style="white-space:nowrap">'+shortDate(s['날짜'])+'</td><td style="white-space:nowrap">'+esc(s['골프장'])+'</td>'+
-      '<td class="num" style="font-weight:700;white-space:nowrap">'+esc(s['타수'])+scoreBadge(s['타수'])+'</td>'+
+      '<td class="num" style="font-weight:700">'+esc(s['타수'])+'</td>'+
       '<td>'+incBadge(s)+'</td>'+ scoreRowActions(s) +'</tr>'
     ).join('') + '</table>';
   openModal('mHistory');
@@ -1430,21 +1422,11 @@ function openScore(){
   const sel = document.getElementById('fsEvent');
   sel.innerHTML = [...DATA.events].sort((a,b)=>a['날짜']<b['날짜']?1:-1)
     .map(e => '<option value="'+e.ID+'">'+e['날짜']+' · '+esc(e['골프장'])+'</option>').join('');
-  sel.onchange = renderScoreRows;
-  renderScoreRows();
-  openModal('mScore');
-}
-// 선택한 모임의 참가자만 입력란에 표시 (불참 인원 제외 · 참가자 미지정 모임은 전체 표시)
-function renderScoreRows(){
-  const eid = document.getElementById('fsEvent').value;
-  const ev = DATA.events.find(x=>String(x.ID)===String(eid));
-  const players = String((ev && ev['참가자'])||'').split(',').map(x=>x.trim()).filter(Boolean);
-  let list = DATA.members.filter(m=>!m['상태']);
-  if(players.length) list = list.filter(m => players.indexOf(m['이름']) >= 0);
-  document.getElementById('fsRows').innerHTML = list.length ? list.map(m =>
+  document.getElementById('fsRows').innerHTML = DATA.members.filter(m=>!m['상태']).map(m =>
     '<div class="score-row"><span>'+esc(m['이름'])+'</span>'+
     '<input type="number" min="50" max="150" placeholder="타수" data-id="'+m.ID+'" data-name="'+esc(m['이름'])+'"></div>'
-  ).join('') : '<div class="empty">이 모임에 참가 신청한 회원이 없습니다</div>';
+  ).join('');
+  openModal('mScore');
 }
 function submitScore(){
   const eid = document.getElementById('fsEvent').value;
