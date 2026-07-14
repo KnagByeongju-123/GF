@@ -278,6 +278,44 @@ td.num,th.num{text-align:right}
 @media(max-width:380px){
   .stats{grid-template-columns:1fr}
 }
+
+/* ---------- 인트로 필름 ---------- */
+#intro{position:fixed;inset:0;z-index:9999;background:#0e0b07;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;cursor:pointer;overflow:hidden;
+  transition:opacity .9s ease;animation:introFlicker 3.4s infinite}
+#intro.hide{opacity:0;pointer-events:none}
+@keyframes introFlicker{0%,100%{filter:brightness(1)}45%{filter:brightness(.96)}48%{filter:brightness(1.05)}52%{filter:brightness(.93)}55%{filter:brightness(1)}}
+.intro-title{color:#efe6cf;text-align:center;margin-bottom:26px;z-index:3;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+.intro-title h2{font-size:clamp(26px,7vw,44px);letter-spacing:.12em;font-weight:800}
+.intro-title p{font-size:clamp(13px,3.4vw,16px);color:#cdbf9d;margin-top:8px;letter-spacing:.28em}
+.film{position:relative;width:100%;background:#161210;padding:30px 0;z-index:2;
+  box-shadow:0 -18px 40px rgba(0,0,0,.65),0 18px 40px rgba(0,0,0,.65)}
+.film-holes{position:absolute;left:0;width:200%;height:13px;
+  background:repeating-linear-gradient(90deg,transparent 0 12px,#e9dfc4 12px 30px,transparent 30px 42px);
+  border-radius:3px;animation:filmSlide 30s linear infinite;opacity:.85}
+.film-holes.top{top:8px}.film-holes.bot{bottom:8px}
+.film-track{display:flex;gap:16px;width:max-content;animation:filmSlide 30s linear infinite;will-change:transform}
+.film-frame{height:min(40vh,300px);aspect-ratio:4/3;flex:none;background:#1e1913;border:2px solid #2a231a;
+  border-radius:4px;overflow:hidden;position:relative}
+.film-frame img{width:100%;height:100%;object-fit:cover;
+  filter:sepia(.5) contrast(1.06) brightness(.9) saturate(.85)}
+.film-frame::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%)}
+@keyframes filmSlide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.intro-grain{position:absolute;inset:-60px;z-index:4;pointer-events:none;opacity:.14;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grainJit .5s steps(4) infinite}
+@keyframes grainJit{0%{transform:translate(0,0)}25%{transform:translate(-24px,18px)}50%{transform:translate(20px,-16px)}75%{transform:translate(-14px,-22px)}100%{transform:translate(0,0)}}
+.intro-vig{position:absolute;inset:0;z-index:5;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.72) 100%)}
+.intro-hint{margin-top:30px;color:#d8cba6;font-size:14px;letter-spacing:.14em;z-index:3;
+  animation:hintPulse 1.8s ease-in-out infinite}
+@keyframes hintPulse{0%,100%{opacity:.35}50%{opacity:1}}
+.mp-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin:12px 0}
+.mp-thumbs .mp-item{position:relative}
+.mp-thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#101713}
+.mp-thumbs .mp-del{position:absolute;top:4px;right:4px;width:22px;height:22px;border:none;border-radius:50%;
+  background:rgba(0,0,0,.65);color:#ff9c9c;font-size:13px;line-height:22px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -288,7 +326,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="rev">Rev. 9.9</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="rev">Rev. 10.1</span></h1>
     <span class="cc" style="margin-left:auto">정산CC</span>
     <span style="margin-left:10px" id="authArea"></span>
   </div>
@@ -459,6 +497,17 @@ td.num,th.num{text-align:right}
   <section id="tab-settings" hidden>
     <div class="page-head"><h2>⚙️ 설정</h2></div>
     <div class="card" style="padding:18px;margin-bottom:14px">
+      <h3 style="padding:0 0 10px;border:none">🎞️ 메인 사진 (인트로 필름)</h3>
+      <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:12px">
+        사이트 첫 접속 시 옛 필름이 흘러가듯 메인 사진들이 나오는 인트로에 사용됩니다.<br>
+        업로드 시 <b>100KB 이하</b>로 자동 압축되며, 화면을 터치하면 대시보드로 넘어갑니다.</p>
+      <div id="mainPhotoList" class="mp-thumbs"></div>
+      <div class="field"><label>사진 추가 (여러 장 선택 가능)</label>
+        <input type="file" id="setMainPhotos" accept="image/*" multiple></div>
+      <div id="mainPhotoProgress" style="font-size:13px;color:var(--ink-soft);margin:6px 0"></div>
+      <button class="btn btn-primary" onclick="uploadMainPhotos()">메인 사진 업로드</button>
+    </div>
+    <div class="card" style="padding:18px;margin-bottom:14px">
       <h3 style="padding:0 0 10px;border:none">🔔 ntfy 푸시 알림</h3>
       <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:14px">
         회원들은 폰에 <b>ntfy 앱</b>을 설치하고 아래 토픽을 구독하면, 새 모임·새 글 알림을 받습니다.<br>
@@ -522,7 +571,7 @@ td.num,th.num{text-align:right}
     <div class="field"><label>회사명</label><input id="fmCompany"></div>
     <div class="row2">
       <div class="field"><label>직책</label>
-        <select id="fmRole"><option>일반</option><option>회장</option><option>총무</option><option>PM</option></select></div>
+        <select id="fmRole"><option>일반</option><option>회장</option><option>총무</option><option>PM</option><option>총무·PM</option></select></div>
       <div class="field"><label>PIN (로그인 비밀번호)</label>
         <input id="fmPin" type="password" inputmode="numeric" placeholder="수정 시 빈칸=유지"></div>
     </div>
@@ -797,7 +846,7 @@ function updateGate(){
 }
 function updateTabs(){
   document.querySelectorAll('nav button').forEach(b => {
-    if(b.dataset.tab === 'settings'){ b.style.display = isAdmin() ? '' : 'none'; return; }
+    if(b.dataset.tab === 'settings'){ b.style.display = canSettings() ? '' : 'none'; return; }
     b.style.display = (AUTH || GUEST_TABS.indexOf(b.dataset.tab) >= 0) ? '' : 'none';
   });
   if(!AUTH){
@@ -814,16 +863,26 @@ function enterGuest(){
 }
 
 const MASTER_ROLES = ['회장','총무','PM']; // 마스터 권한 직책
+const hasMaster = r => !!r && MASTER_ROLES.some(x => String(r).includes(x));
+// 설정 수정 권한: 총무 또는 PM만 (겸직 포함)
+const canSettings = () => !!AUTH && /총무|PM/.test(String(AUTH['직책']||''));
+// 표시용 직책: 총무 겸 PM은 '총무'로만 표기
+function roleLabel(r){
+  r = String(r||'');
+  if(!r || r === '일반') return '';
+  if(r.includes('총무') && r.includes('PM')) return '총무';
+  return r;
+}
 function isAdmin(){
-  if(AUTH && MASTER_ROLES.includes(AUTH['직책'])) return true;
+  if(AUTH && hasMaster(AUTH['직책'])) return true;
   // 마스터가 아직 아무도 없으면 초기 설정을 위해 전체 허용
-  return DATA.members.length === 0 || !DATA.members.some(m => MASTER_ROLES.includes(m['직책']));
+  return DATA.members.length === 0 || !DATA.members.some(m => hasMaster(m['직책']));
 }
 
 function updateAuthUI(){
   const el = document.getElementById('authArea');
   el.innerHTML = AUTH
-    ? (AUTH['직책']==='일반' ? '' : '<b>'+esc(AUTH['직책'])+'</b> ')+esc(AUTH['이름'])+'님 <button onclick="logout()">로그아웃</button>'
+    ? (roleLabel(AUTH['직책']) ? '<b>'+esc(roleLabel(AUTH['직책']))+'</b> ' : '')+esc(AUTH['이름'])+'님 <button onclick="logout()">로그아웃</button>'
     : (GUEST ? '손님 <button onclick="openLogin()">로그인</button>' : '<button onclick="openLogin()">로그인</button>');
   document.querySelectorAll('.admin-only').forEach(b => b.style.display = isAdmin() ? '' : 'none');
   document.querySelectorAll('.auth-only').forEach(b => b.style.display = AUTH ? '' : 'none');
@@ -844,7 +903,7 @@ function submitLogin(){
     storeSet('golfAuth', AUTH);
     GUEST = false; storeSet('golfGuest', null);
     closeModal('mLogin'); updateGate(); updateAuthUI(); renderAll();
-    toast((d['직책']==='일반' ? '' : d['직책'] + ' ') + d['이름'] + '님 환영합니다');
+    toast((roleLabel(d['직책']) ? roleLabel(d['직책']) + ' ' : '') + d['이름'] + '님 환영합니다');
   });
 }
 function logout(){
@@ -926,6 +985,7 @@ function loadAll(){
     loadTeamsFromServer();
     updateAuthUI();
     renderAll();
+    syncMainPhotos(true);
   });
 }
 
@@ -1036,10 +1096,11 @@ function statusBadge(m){
   return '';
 }
 function roleBadge(r){
-  if(!r || r==='일반') return '';
+  const label = roleLabel(r);
+  if(!label) return '';
   // 마스터 직책은 골드, 그 외(일반 제외)는 그린 배지
-  const gold = MASTER_ROLES.includes(r);
-  return ' <span class="badge" style="'+(gold?'background:#3A2F17;color:#E4C378':'background:#173A2A;color:#7FE3B0')+'">'+esc(r)+'</span>';
+  const gold = hasMaster(r);
+  return ' <span class="badge" style="'+(gold?'background:#3A2F17;color:#E4C378':'background:#173A2A;color:#7FE3B0')+'">'+esc(label)+'</span>';
 }
 function renderMembers(){
   const el = document.getElementById('memberList');
@@ -1188,7 +1249,7 @@ function openActivity(name){
 
   let html = '<div class="card" style="margin-bottom:12px"><div style="padding:12px 14px;font-size:13.5px;line-height:1.9">'+
     '<b>회원정보</b> · 연락처 '+esc(m['연락처']||'-')+' · 가입일 '+shortDate(m['가입일']||'')+
-    ' · 직책 '+esc(m['직책']||'일반')+' · 상태 <b style="color:#5FE29B">'+(m['상태']||'정상')+'</b><br>'+
+    ' · 직책 '+esc(roleLabel(m['직책'])||'일반')+' · 상태 <b style="color:#5FE29B">'+(m['상태']||'정상')+'</b><br>'+
     '주소 '+esc(m['주소']||'-')+' · 회사 '+esc(m['회사명']||'-')+(m['비고']?' · 비고 '+esc(m['비고']):'')+'</div></div>';
 
   html += '<div class="card" style="margin-bottom:12px"><h3>⛳ 타수 이력 '+sc.length+'건'+
@@ -1686,7 +1747,7 @@ function delFee(id){
 
 /* ---------- 게시판 ---------- */
 function postFiles(p){ return String(p['파일ID목록']||'').split(',').filter(Boolean); }
-const isAdminRole = () => !!AUTH && MASTER_ROLES.includes(AUTH['직책']);
+const isAdminRole = () => !!AUTH && hasMaster(AUTH['직책']);
 const canEditPost = p => !!AUTH && (isAdminRole() || AUTH['이름'] === p['작성자']);
 const POST_TYPES = ['일반', '모임후기', '정회원 요청', '건의/질문']; // 공지는 운영진 전용
 let BOARD_FILTER = '전체';
@@ -1895,7 +1956,7 @@ function renderMypage(){
   const attended = yrEvents.filter(e=>String(e['참가자']||'').split(',').map(x=>x.trim()).indexOf(name)>=0).length;
 
   let html = '<div class="my-hero">'+
-    '<h3>'+esc(name)+' <span class="role">'+(AUTH['직책']==='일반'?'회원':esc(AUTH['직책']))+'</span></h3>'+
+    '<h3>'+esc(name)+' <span class="role">'+esc(roleLabel(AUTH['직책'])||'회원')+'</span></h3>'+
     '<div class="my-stat-row">'+
     '<div class="my-stat"><div class="v">'+(avg?avg.toFixed(1):'-')+'</div><div class="l">평균타수('+avgLabel+')</div></div>'+
     '<div class="my-stat"><div class="v">'+(myRank||'-')+(myRank?'위':'')+'</div><div class="l">시즌 순위</div></div>'+
@@ -2011,12 +2072,111 @@ function renderSettings(){
     finePreviewText();
     fpEl.oninput = finePreviewText;
   }
+  renderMainPhotos();
+}
+
+/* ---------- 메인 사진(인트로 필름) ---------- */
+var MAIN_CACHE_KEY = 'hyMainPhotos_v1';
+function mainPhotoIds(){ return String(setting('mainPhotos')||'').split(',').filter(Boolean); }
+function renderMainPhotos(){
+  const box = document.getElementById('mainPhotoList');
+  if(!box) return;
+  const ids = mainPhotoIds();
+  box.innerHTML = ids.length
+    ? ids.map(id => '<div class="mp-item"><img data-img="'+id+'" alt="메인 사진">'+
+        '<button class="mp-del" onclick="delMainPhoto(\''+id+'\')">✕</button></div>').join('')
+    : '<div style="grid-column:1/-1;font-size:13px;color:var(--ink-soft)">등록된 메인 사진이 없습니다.</div>';
+  loadProxyImages('#mainPhotoList');
+}
+async function uploadMainPhotos(){
+  if(!canSettings()){ toast('설정 수정은 총무·PM만 가능합니다'); return; }
+  const input = document.getElementById('setMainPhotos');
+  const files = [...(input.files||[])];
+  if(!files.length){ toast('사진을 먼저 선택하세요'); return; }
+  const prog = document.getElementById('mainPhotoProgress');
+  const ids = mainPhotoIds();
+  try{
+    for(let i=0;i<files.length;i++){
+      prog.textContent = '압축·업로드 중 '+(i+1)+'/'+files.length+'...';
+      const base64 = await compressImage(files[i], 100*1024); // 100KB 이하
+      const id = await imgUpload('main', base64);
+      ids.push(id);
+    }
+    await callAsync('saveSetting', {key:'mainPhotos', value: ids.join(',')});
+    DATA.settings = DATA.settings || {}; DATA.settings.mainPhotos = ids.join(',');
+    try{ localStorage.removeItem(MAIN_CACHE_KEY); }catch(e){}
+    input.value=''; prog.textContent='';
+    renderMainPhotos(); syncMainPhotos();
+    toast('메인 사진 '+files.length+'장을 저장했습니다');
+  }catch(e){ prog.textContent=''; alert('업로드 실패: '+(e.message||e)); }
+}
+async function delMainPhoto(id){
+  if(!canSettings()){ toast('설정 수정은 총무·PM만 가능합니다'); return; }
+  if(!confirm('이 사진을 인트로에서 제거할까요?')) return;
+  const ids = mainPhotoIds().filter(x => x !== id);
+  await callAsync('saveSetting', {key:'mainPhotos', value: ids.join(',')});
+  DATA.settings = DATA.settings || {}; DATA.settings.mainPhotos = ids.join(',');
+  try{ imgDelete(id); }catch(e){}
+  try{ localStorage.removeItem(MAIN_CACHE_KEY); }catch(e){}
+  renderMainPhotos(); syncMainPhotos();
+  toast('제거했습니다');
+}
+// 서버 사진 → 로컬 캐시 동기화. showAfter=true면 (아직 안 봤을 때) 인트로 표시
+var INTRO_SHOWN = false;
+async function syncMainPhotos(showAfter){
+  const ids = mainPhotoIds();
+  let cached = null;
+  try{ cached = JSON.parse(localStorage.getItem(MAIN_CACHE_KEY)||'null'); }catch(e){}
+  if(!ids.length){ try{ localStorage.removeItem(MAIN_CACHE_KEY); }catch(e){} return; }
+  if(cached && cached.ids && cached.ids.join(',') === ids.join(',')){
+    if(showAfter && !INTRO_SHOWN && cached.imgs && cached.imgs.length) showIntro(cached.imgs);
+    return;
+  }
+  const imgs = [];
+  for(const id of ids){
+    try{ const b64 = await callAsync('getImage', {id}); if(b64) imgs.push(b64); }catch(e){}
+  }
+  if(imgs.length){
+    try{ localStorage.setItem(MAIN_CACHE_KEY, JSON.stringify({ids, imgs})); }catch(e){}
+    if(showAfter && !INTRO_SHOWN) showIntro(imgs);
+  }
+}
+function showIntro(imgs){
+  if(document.getElementById('intro')) return;
+  INTRO_SHOWN = true;
+  const el = document.createElement('div');
+  el.id = 'intro';
+  let list = imgs.slice();
+  while(list.length && list.length < 6) list = list.concat(imgs); // 프레임 충분히 확보
+  const frames = list.map(b64 =>
+    '<div class="film-frame"><img src="data:image/jpeg;base64,'+b64+'" alt=""></div>').join('');
+  el.innerHTML =
+    '<div class="intro-title"><h2>⛳ 호영회</h2><p>정산CC · 추억의 앨범</p></div>'+
+    '<div class="film"><div class="film-holes top"></div>'+
+    '<div class="film-track">'+frames+frames+'</div>'+
+    '<div class="film-holes bot"></div></div>'+
+    '<div class="intro-hint">화면을 터치하면 시작합니다</div>'+
+    '<div class="intro-grain"></div><div class="intro-vig"></div>';
+  el.onclick = hideIntro;
+  document.body.appendChild(el);
+}
+function hideIntro(){
+  const el = document.getElementById('intro');
+  if(!el) return;
+  el.classList.add('hide');
+  setTimeout(()=>el.remove(), 950);
+}
+function initIntro(){
+  let cached = null;
+  try{ cached = JSON.parse(localStorage.getItem(MAIN_CACHE_KEY)||'null'); }catch(e){}
+  if(cached && cached.imgs && cached.imgs.length) showIntro(cached.imgs);
 }
 function finePreviewText(){
   const v = Math.max(0, Number(document.getElementById('setFinePer').value)||0);
   document.getElementById('finePreview').textContent = '예: 3회 불참 = '+won(v*3)+'원';
 }
 async function saveFinePer(){
+  if(!canSettings()){ toast('설정 수정은 총무·PM만 가능합니다'); return; }
   const v = Math.max(0, Number(document.getElementById('setFinePer').value)||0);
   try{
     await callAsync('saveSetting', {key:'finePer', value:String(v)});
@@ -2032,6 +2192,7 @@ function fyPreviewText(){
     : '예: 2026회기 = 26.'+String(v).padStart(2,'0')+' ~ 27.'+String(v-1).padStart(2,'0');
 }
 async function saveFyStart(){
+  if(!canSettings()){ toast('설정 수정은 총무·PM만 가능합니다'); return; }
   const v = Number(document.getElementById('setFyStart').value)||7;
   try{
     await callAsync('saveSetting', {key:'fyStartMonth', value:String(v)});
@@ -2042,6 +2203,7 @@ async function saveFyStart(){
 }
 
 async function saveNtfySettings(){
+  if(!canSettings()){ toast('설정 수정은 총무·PM만 가능합니다'); return; }
   const topic = document.getElementById('setNtfyTopic').value.trim().replace(/[^\w-]/g,'');
   try{
     await callAsync('saveSetting', {key:'ntfyTopic', value: topic});
@@ -2383,6 +2545,7 @@ function fallbackCopy(text){
 }
 
 /* ---------- 시작 ---------- */
+initIntro();
 updateGate();
 updateAuthUI();
 loadAll();
