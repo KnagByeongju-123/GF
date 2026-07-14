@@ -279,38 +279,37 @@ td.num,th.num{text-align:right}
   .stats{grid-template-columns:1fr}
 }
 
-/* ---------- 인트로 필름 ---------- */
-#intro{position:fixed;inset:0;z-index:9999;background:#0e0b07;display:flex;flex-direction:column;
-  justify-content:center;align-items:center;cursor:pointer;overflow:hidden;
-  transition:opacity .9s ease;animation:introFlicker 3.4s infinite}
+/* ---------- 인트로 (모던) ---------- */
+#intro{position:fixed;inset:0;z-index:9999;background:#0a0e14;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;cursor:pointer;overflow:hidden;transition:opacity .7s ease}
 #intro.hide{opacity:0;pointer-events:none}
-@keyframes introFlicker{0%,100%{filter:brightness(1)}45%{filter:brightness(.96)}48%{filter:brightness(1.05)}52%{filter:brightness(.93)}55%{filter:brightness(1)}}
-.intro-title{color:#efe6cf;text-align:center;margin-bottom:26px;z-index:3;text-shadow:0 2px 14px rgba(0,0,0,.7)}
-.intro-title h2{font-size:clamp(26px,7vw,44px);letter-spacing:.12em;font-weight:800}
-.intro-title p{font-size:clamp(13px,3.4vw,16px);color:#cdbf9d;margin-top:8px;letter-spacing:.28em}
-.film{position:relative;width:100%;background:#161210;padding:30px 0;z-index:2;
-  box-shadow:0 -18px 40px rgba(0,0,0,.65),0 18px 40px rgba(0,0,0,.65)}
-.film-holes{position:absolute;left:0;width:200%;height:13px;
-  background:repeating-linear-gradient(90deg,transparent 0 12px,#e9dfc4 12px 30px,transparent 30px 42px);
-  border-radius:3px;animation:filmSlide 30s linear infinite;opacity:.85}
-.film-holes.top{top:8px}.film-holes.bot{bottom:8px}
-.film-track{display:flex;gap:16px;width:max-content;animation:filmSlide 30s linear infinite;will-change:transform}
-.film-frame{height:min(40vh,300px);aspect-ratio:4/3;flex:none;background:#1e1913;border:2px solid #2a231a;
-  border-radius:4px;overflow:hidden;position:relative}
-.film-frame img{width:100%;height:100%;object-fit:cover;
-  filter:sepia(.5) contrast(1.06) brightness(.9) saturate(.85)}
-.film-frame::after{content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%)}
-@keyframes filmSlide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.intro-grain{position:absolute;inset:-60px;z-index:4;pointer-events:none;opacity:.14;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation:grainJit .5s steps(4) infinite}
-@keyframes grainJit{0%{transform:translate(0,0)}25%{transform:translate(-24px,18px)}50%{transform:translate(20px,-16px)}75%{transform:translate(-14px,-22px)}100%{transform:translate(0,0)}}
-.intro-vig{position:absolute;inset:0;z-index:5;pointer-events:none;
-  background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.72) 100%)}
-.intro-hint{margin-top:30px;color:#d8cba6;font-size:14px;letter-spacing:.14em;z-index:3;
-  animation:hintPulse 1.8s ease-in-out infinite}
-@keyframes hintPulse{0%,100%{opacity:.35}50%{opacity:1}}
+#intro::before{content:'';position:absolute;inset:0;z-index:0;
+  background:radial-gradient(120% 90% at 50% -10%,rgba(60,110,220,.28),transparent 60%),
+             radial-gradient(100% 80% at 50% 110%,rgba(20,180,140,.16),transparent 55%),#0a0e14}
+.intro-title{text-align:center;margin-bottom:34px;z-index:3;opacity:0;transform:translateY(14px);
+  animation:introUp .9s .2s cubic-bezier(.2,.7,.2,1) forwards}
+.intro-title h2{font-size:clamp(28px,7.5vw,52px);font-weight:800;letter-spacing:-.01em;color:#f4f7fb;
+  display:flex;align-items:center;justify-content:center;gap:12px}
+.intro-title p{font-size:clamp(12px,3.2vw,15px);color:#8fa0bd;margin-top:10px;
+  letter-spacing:.34em;text-transform:uppercase;font-weight:600}
+@keyframes introUp{to{opacity:1;transform:translateY(0)}}
+.strip{position:relative;width:100%;z-index:2;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.strip-track{display:flex;gap:18px;width:max-content;padding:6px 0;
+  animation:stripSlide 34s linear infinite;will-change:transform}
+.strip-card{height:min(42vh,320px);aspect-ratio:4/3;flex:none;border-radius:18px;overflow:hidden;position:relative;
+  background:#12161f;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06) inset}
+.strip-card img{width:100%;height:100%;object-fit:cover;filter:saturate(1.05) contrast(1.03)}
+.strip-card::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 55%,rgba(8,12,20,.55) 100%)}
+@keyframes stripSlide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.intro-cta{margin-top:38px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:14px;
+  opacity:0;animation:introUp .9s .5s cubic-bezier(.2,.7,.2,1) forwards}
+.intro-btn{padding:13px 30px;border-radius:999px;border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.06);color:#eaf0f8;font-size:15px;font-weight:600;letter-spacing:.02em;
+  backdrop-filter:blur(6px);transition:background .2s,transform .2s}
+.intro-btn:hover{background:rgba(255,255,255,.13);transform:translateY(-1px)}
+.intro-hint{color:#6d7d97;font-size:12.5px;letter-spacing:.2em}
 .mp-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin:12px 0}
 .mp-thumbs .mp-item{position:relative}
 .mp-thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#101713}
@@ -326,7 +325,7 @@ td.num,th.num{text-align:right}
   </video>
   <div class="hwrap">
   <div class="brand">
-    <h1><span class="flag">⛳</span> 호영회 <span class="rev">Rev. 10.1</span></h1>
+    <h1><span class="flag">⛳</span> 호영회 <span class="rev">Rev. 10.2</span></h1>
     <span class="cc" style="margin-left:auto">정산CC</span>
     <span style="margin-left:10px" id="authArea"></span>
   </div>
@@ -497,7 +496,7 @@ td.num,th.num{text-align:right}
   <section id="tab-settings" hidden>
     <div class="page-head"><h2>⚙️ 설정</h2></div>
     <div class="card" style="padding:18px;margin-bottom:14px">
-      <h3 style="padding:0 0 10px;border:none">🎞️ 메인 사진 (인트로 필름)</h3>
+      <h3 style="padding:0 0 10px;border:none">🎬 메인 사진 (인트로)</h3>
       <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:12px">
         사이트 첫 접속 시 옛 필름이 흘러가듯 메인 사진들이 나오는 인트로에 사용됩니다.<br>
         업로드 시 <b>100KB 이하</b>로 자동 압축되며, 화면을 터치하면 대시보드로 넘어갑니다.</p>
@@ -2075,7 +2074,7 @@ function renderSettings(){
   renderMainPhotos();
 }
 
-/* ---------- 메인 사진(인트로 필름) ---------- */
+/* ---------- 메인 사진(인트로) ---------- */
 var MAIN_CACHE_KEY = 'hyMainPhotos_v1';
 function mainPhotoIds(){ return String(setting('mainPhotos')||'').split(',').filter(Boolean); }
 function renderMainPhotos(){
@@ -2149,14 +2148,12 @@ function showIntro(imgs){
   let list = imgs.slice();
   while(list.length && list.length < 6) list = list.concat(imgs); // 프레임 충분히 확보
   const frames = list.map(b64 =>
-    '<div class="film-frame"><img src="data:image/jpeg;base64,'+b64+'" alt=""></div>').join('');
+    '<div class="strip-card"><img src="data:image/jpeg;base64,'+b64+'" alt=""></div>').join('');
   el.innerHTML =
-    '<div class="intro-title"><h2>⛳ 호영회</h2><p>정산CC · 추억의 앨범</p></div>'+
-    '<div class="film"><div class="film-holes top"></div>'+
-    '<div class="film-track">'+frames+frames+'</div>'+
-    '<div class="film-holes bot"></div></div>'+
-    '<div class="intro-hint">화면을 터치하면 시작합니다</div>'+
-    '<div class="intro-grain"></div><div class="intro-vig"></div>';
+    '<div class="intro-title"><h2><span class="flag">⛳</span> 호영회</h2><p>정산CC · GOLF CLUB</p></div>'+
+    '<div class="strip"><div class="strip-track">'+frames+frames+'</div></div>'+
+    '<div class="intro-cta"><button class="intro-btn">입장하기 →</button>'+
+    '<span class="intro-hint">화면 아무 곳이나 눌러도 됩니다</span></div>';
   el.onclick = hideIntro;
   document.body.appendChild(el);
 }
